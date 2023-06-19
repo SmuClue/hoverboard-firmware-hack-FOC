@@ -125,7 +125,8 @@ typedef struct{
   int16_t   speedL_meas;
   int16_t   batVoltage;
   int16_t   boardTemp;
-  uint16_t  cmdLed;
+  //uint16_t  cmdLed;
+  int16_t   dc_curr;
   uint16_t  checksum;
 } SerialFeedback;
 static SerialFeedback Feedback;
@@ -516,21 +517,22 @@ int main(void) {
         Feedback.speedL_meas	  = (int16_t)rtY_Left.n_mot;
         Feedback.batVoltage	    = (int16_t)batVoltageCalib;
         Feedback.boardTemp	    = (int16_t)board_temp_deg_c;
+        Feedback.dc_curr        = (int16_t)dc_curr;
 
         #if defined(FEEDBACK_SERIAL_USART2)
           if(__HAL_DMA_GET_COUNTER(huart2.hdmatx) == 0) {
-            Feedback.cmdLed     = (uint16_t)sideboard_leds_L;
+            //Feedback.cmdLed     = (uint16_t)sideboard_leds_L;
             Feedback.checksum   = (uint16_t)(Feedback.start ^ Feedback.cmd1 ^ Feedback.cmd2 ^ Feedback.speedR_meas ^ Feedback.speedL_meas 
-                                           ^ Feedback.batVoltage ^ Feedback.boardTemp ^ Feedback.cmdLed);
+                                           ^ Feedback.batVoltage ^ Feedback.boardTemp ^ Feedback.dc_curr);
 
             HAL_UART_Transmit_DMA(&huart2, (uint8_t *)&Feedback, sizeof(Feedback));
           }
         #endif
         #if defined(FEEDBACK_SERIAL_USART3)
           if(__HAL_DMA_GET_COUNTER(huart3.hdmatx) == 0) {
-            Feedback.cmdLed     = (uint16_t)sideboard_leds_R;
+            //Feedback.cmdLed     = (uint16_t)sideboard_leds_R;
             Feedback.checksum   = (uint16_t)(Feedback.start ^ Feedback.cmd1 ^ Feedback.cmd2 ^ Feedback.speedR_meas ^ Feedback.speedL_meas 
-                                           ^ Feedback.batVoltage ^ Feedback.boardTemp ^ Feedback.cmdLed);
+                                           ^ Feedback.batVoltage ^ Feedback.boardTemp ^ Feedback.dc_curr);
 
             HAL_UART_Transmit_DMA(&huart3, (uint8_t *)&Feedback, sizeof(Feedback));
           }
