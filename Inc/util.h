@@ -39,6 +39,7 @@
       uint16_t  start;
       int16_t   steer;
       int16_t   speed;
+      int16_t   nmax;
       uint16_t  checksum;
     } SerialCommand;
   #endif
