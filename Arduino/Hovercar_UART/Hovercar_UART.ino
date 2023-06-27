@@ -80,12 +80,8 @@
 #define RCRCV_SPDCMD_MIN    0       //Command @ RCRCV_CH5_TD_MIN
 #define RCRCV_SPDCMD_MAX    650    //Command @ RCRCV_CH5_TD_MAX
 
-#define SPDLIM_CMD1 1000
-#define SPDLIM_N1 300
-#define SPDLIM_CMD2 120
-#define SPDLIM_N2 (SPDLIM_N1 + 60)
-#define SPDLIM_CMD3 0
-#define SPDLIM_N3 (SPDLIM_N2 + 60)
+//UART
+#define UART_TIMEOUT      60      //Timeout for last valid UART Receive in millis
 
 // #define DEBUG_RX                        // [-] Debug received data. Prints all bytes to serial (comment-out to disable)
 // #define DEBUG_TX
@@ -103,13 +99,13 @@ uint16_t t10ms;
 
 int16_t acclrt_adc = 0;     //raw ADC-Value
 int16_t acclrt_adc_old = 0; //ADC-Value last cycle
-uint8_t acclrt_qlf = 0;     //0 = unplausible; 1 = plausible
+uint8_t acclrt_qlf = 0;     //0 = unplausible; 1 = plausible; 2 = timeout
 int16_t acclrt_TrqCmd = 0;  //TrqCommand derived from acclrt [ACCLRT_TRQCMD_MIN; ACCLRT_TRQCMD_MAX]
 
 //RC Receiver Ch2 Throttle
 int16_t RcRcvCh2_TDuty = 0;       //PWM Dutycylce 
 int16_t RcRcvCh2_TDuty_old = 0;   //last cycle
-int16_t RcRcvCh2_qlf = 0;         //0 = unplausible; 1 = plausible
+int16_t RcRcvCh2_qlf = 0;         //0 = unplausible; 1 = plausible; 2 = timeout
 int16_t RcRcv_TrqCmd = 0;       //TrqCommand derived from RcRcvCh2_TDuty
 
 uint16_t tMicrosRcRcvCh2Pwm2 = 2;
@@ -120,7 +116,7 @@ uint8_t RcRcvCh2NewData = 0;
 //RC Receiver Ch1 Steering
 int16_t RcRcvCh1_TDuty = 0;       //PWM Dutycylce 
 int16_t RcRcvCh1_TDuty_old = 0;   //last cycle
-int16_t RcRcvCh1_qlf = 0;         //0 = unplausible; 1 = plausible
+int16_t RcRcvCh1_qlf = 0;         //0 = unplausible; 1 = plausible; 2 = timeout
 
 uint16_t tMicrosRcRcvCh1Pwm2 = 2;
 uint16_t tMicrosRcRcvCh1Pwm1 = 1;
@@ -130,7 +126,7 @@ uint8_t RcRcvCh1NewData = 0;
 //RC Receiver Ch5 Drehknopf
 int16_t RcRcvCh5_TDuty = 0;       //PWM Dutycylce 
 int16_t RcRcvCh5_TDuty_old = 0;   //last cycle
-int16_t RcRcvCh5_qlf = 0;         //0 = unplausible; 1 = plausible
+int16_t RcRcvCh5_qlf = 0;         //0 = unplausible; 1 = plausible; 2 = timeout
 int16_t RcRcv_SpdCmd = 0;       //SpeedCommand derived from RcRcvCh5_TDuty
 
 uint16_t tMicrosRcRcvCh5Pwm2 = 2;
@@ -141,7 +137,7 @@ uint8_t RcRcvCh5NewData = 0;
 //RC Receiver Ch4 3-way-switch
 int16_t RcRcvCh4_TDuty = 0;       //PWM Dutycylce 
 int16_t RcRcvCh4_TDuty_old = 0;   //last cycle
-int16_t RcRcvCh4_qlf = 0;         //0 = unplausible; 1 = plausible
+int16_t RcRcvCh4_qlf = 0;         //0 = unplausible; 1 = plausible; 2 = timeout
 uint8_t RcRcv_CtrlMod = RCRCV_CTRLMOD_SAFE;         //0 = RC-Control; 1 = min(RC, Acclrt); 2 = Acclrt-Control
 
 uint16_t tMicrosRcRcvCh4Pwm2 = 2;
@@ -152,12 +148,18 @@ uint8_t RcRcvCh4NewData = 0;
 //RC Receiver Ch3 Pushbutton
 int16_t RcRcvCh3_TDuty = 0;       //PWM Dutycylce 
 int16_t RcRcvCh3_TDuty_old = 0;   //last cycle
-int16_t RcRcvCh3_qlf = 0;         //0 = unplausible; 1 = plausible
+int16_t RcRcvCh3_qlf = 0;         //0 = unplausible; 1 = plausible; 2 = timeout
 
 uint16_t tMicrosRcRcvCh3Pwm2 = 2;
 uint16_t tMicrosRcRcvCh3Pwm1 = 1;
 uint16_t tMilisRcRcvCh3Pwm = 0;
 uint8_t RcRcvCh3NewData = 0;
+
+// Speed
+int16_t speedAvg_meas = 0;
+
+// UART Communication
+uint16_t tMillisUART = 0;
 
 typedef struct {
   uint16_t start;
@@ -349,24 +351,26 @@ void Receive() {
     if (NewFeedback.start == START_FRAME && checksum == NewFeedback.checksum) {
       // Copy the new data
       memcpy(&Feedback, &NewFeedback, sizeof(SerialFeedback));
+      
+      tMillisUART = (uint16_t)millis();
 
       // Print data to built-in Serial
-      Serial.print("cS:");
-      Serial.print(Feedback.cmd1);
-      Serial.print(",cT:");
-      Serial.print(Feedback.cmd2);
-      Serial.print(",sR:");
-      Serial.print(Feedback.speedR_meas);
-      Serial.print(",sL:");
-      Serial.print(Feedback.speedL_meas);
-      Serial.print(",Ub:");
-      Serial.print(Feedback.batVoltage);
-      Serial.print(",Tb:");
-      Serial.print(Feedback.boardTemp);
-      Serial.print(",Idc:");
-      Serial.println(Feedback.dc_curr);
+      // Serial.print("cS:");
+      // Serial.print(Feedback.cmd1);
+      // Serial.print(",cT:");
+      // Serial.print(Feedback.cmd2);
+      // Serial.print(",sR:");
+      // Serial.print(Feedback.speedR_meas);
+      // Serial.print(",sL:");
+      // Serial.print(Feedback.speedL_meas);
+      // Serial.print(",Ub:");
+      // Serial.print(Feedback.batVoltage);
+      // Serial.print(",Tb:");
+      // Serial.print(Feedback.boardTemp);
+      // Serial.print(",Idc:");
+      // Serial.println(Feedback.dc_curr);
     } else {
-      Serial.println("Non-valid data skipped");
+      Serial.println("CRC");
     }
     idx = 0;  // Reset the index (it prevents to enter in this if condition in the next cycle)
   }
@@ -388,7 +392,7 @@ void RcRcvCh2ReadPlaus() {
     RcRcvCh2_qlf = 0;
   else if (((uint16_t)millis() - tMilisRcRcvCh2Pwm) > RCRCV_CH2_TIMEOUT)  //Trigger Timeout -> Set tMicros to init-Value so qlf can only get reset with new valid values
   {
-    RcRcvCh2_qlf = 0;
+    RcRcvCh2_qlf = 2;
     tMicrosRcRcvCh2Pwm2 = 2;
     tMicrosRcRcvCh2Pwm1 = 1;
   }
@@ -408,7 +412,7 @@ void RcRcvCh1ReadPlaus() {
     RcRcvCh1_qlf = 0;
   else if (((uint16_t)millis() - tMilisRcRcvCh1Pwm) > RCRCV_CH1_TIMEOUT)  //Trigger Timeout -> Set tMicros to init-Value so qlf can only get reset with new valid values
   {
-    RcRcvCh1_qlf = 0;
+    RcRcvCh1_qlf = 2;
     tMicrosRcRcvCh1Pwm2 = 2;
     tMicrosRcRcvCh1Pwm1 = 1;
   }
@@ -428,7 +432,7 @@ void RcRcvCh5ReadPlaus() {
     RcRcvCh5_qlf = 0;
   else if (((uint16_t)millis() - tMilisRcRcvCh5Pwm) > RCRCV_CH5_TIMEOUT)  //Trigger Timeout -> Set tMicros to init-Value so qlf can only get reset with new valid values
   {
-    RcRcvCh5_qlf = 0;
+    RcRcvCh5_qlf = 2;
     tMicrosRcRcvCh5Pwm2 = 2;
     tMicrosRcRcvCh5Pwm1 = 1;
   }
@@ -448,7 +452,7 @@ void RcRcvCh4ReadPlaus() {
     RcRcvCh4_qlf = 0;
   else if (((uint16_t)millis() - tMilisRcRcvCh4Pwm) > RCRCV_CH4_TIMEOUT)  //Trigger Timeout -> Set tMicros to init-Value so qlf can only get reset with new valid values
   {
-    RcRcvCh4_qlf = 0;
+    RcRcvCh4_qlf = 2;
     tMicrosRcRcvCh4Pwm2 = 2;
     tMicrosRcRcvCh4Pwm1 = 1;
   }
@@ -471,7 +475,7 @@ void RcRcvCh3ReadPlaus() {
     RcRcvCh3_qlf = 0;
   else if (((uint16_t)millis() - tMilisRcRcvCh3Pwm) > RCRCV_CH3_TIMEOUT)  //Trigger Timeout -> Set tMicros to init-Value so qlf can only get reset with new valid values
   {
-    RcRcvCh3_qlf = 0;
+    RcRcvCh3_qlf = 2;
     tMicrosRcRcvCh3Pwm2 = 2;
     tMicrosRcRcvCh3Pwm1 = 1;
   }
@@ -543,7 +547,7 @@ void RcRcvSpdCmd() {
 
 void RcRcvCtrlMod() {
   if (RcRcvCh4_qlf == 0) {
-    RcRcv_CtrlMod = RCRCV_CTRLMOD_SAFE;   //Safe-State is Limiting-Mode 
+    RcRcv_CtrlMod = RCRCV_CTRLMOD_SAFE;   //Safe-State is RC-Lim-Mode 
   } else {
     //Switch in left position -> RC-Control
     if ((RcRcvCh4_TDuty >= (RCRCV_CH4_TD_LEFT - RCRCV_CH4_TD_TOLERANCE)) && (RcRcvCh4_TDuty <= (RCRCV_CH4_TD_LEFT + RCRCV_CH4_TD_TOLERANCE)))
@@ -559,34 +563,66 @@ void RcRcvCtrlMod() {
   }
 }
 
+void ReceiveUARTPlaus() {
+  if (((uint16_t)millis() - tMillisUART) > UART_TIMEOUT)  //Trigger Timeout
+  {
+    tMillisUART = (uint16_t)millis() - UART_TIMEOUT - 1;  //pull tMillisUART behind actual millis to avoid overflow/runover-effects
+
+    //Set UART Feedback to 0
+    speedAvg_meas = 0;
+    Feedback.cmd1 = 0;
+    Feedback.cmd2 = 0;
+    Feedback.speedR_meas = 0;
+    Feedback.speedL_meas = 0;
+    Feedback.batVoltage = 0;
+    Feedback.boardTemp = 0;
+    Feedback.dc_curr = 0;
+  }
+  else
+    speedAvg_meas = (Feedback.speedR_meas + Feedback.speedL_meas)/2;
+}
+
 void Task10ms() {
 
-    AcclrtReadPlaus();
-    //Serial.print("adc:");  Serial.print(acclrt_adc);
-    //Serial.print(",pls:");  Serial.print(acclrt_qlf);
+  AcclrtReadPlaus();
+  //Serial.print("adc:");  Serial.print(acclrt_adc);
+  //Serial.print(",pls:");  Serial.print(acclrt_qlf);
 
-    RcRcvCh2ReadPlaus();
-    //Serial.print(",TRc2:");  Serial.print(RcRcvCh2_TDuty);
-    //Serial.print(",Rc2Qlf:");  Serial.print(RcRcvCh2_qlf);
+  RcRcvCh2ReadPlaus();
+  //Serial.print(",TRc2:");  Serial.print(RcRcvCh2_TDuty);
+  //Serial.print(",Rc2Qlf:");  Serial.print(RcRcvCh2_qlf);
 
-    RcRcvCh5ReadPlaus();
-    //Serial.print(",TRc5:");  Serial.print(RcRcvCh5_TDuty);
-    //Serial.print(",Rc5Qlf:");  Serial.print(RcRcvCh5_qlf);
+  RcRcvCh5ReadPlaus();
+  //Serial.print(",TRc5:");  Serial.print(RcRcvCh5_TDuty);
+  //Serial.print(",Rc5Qlf:");  Serial.print(RcRcvCh5_qlf);
 
-    RcRcvCh4ReadPlaus();
-    Serial.print(",TRc4:");  Serial.print(RcRcvCh4_TDuty);
-    Serial.print(",Rc4Qlf:");  Serial.print(RcRcvCh4_qlf);
+  RcRcvCh4ReadPlaus();
+  // Serial.print(",TRc4:");  Serial.print(RcRcvCh4_TDuty);
+  // Serial.print(",Rc4Qlf:");  Serial.print(RcRcvCh4_qlf);
 
-    RcRcvCh3ReadPlaus();
-    //Serial.print(",TRc3:");  Serial.print(RcRcvCh3_TDuty);
-    //Serial.print(",Rc3Qlf:");  Serial.print(RcRcvCh3_qlf);
+  RcRcvCh3ReadPlaus();
+  // Serial.print(",TRc3:");  Serial.print(RcRcvCh3_TDuty);
+  // Serial.print(",Rc3Qlf:");  Serial.print(RcRcvCh3_qlf);
 
-    RcRcvCh1ReadPlaus();
-    //Serial.print(",TRc1:");  Serial.print(RcRcvCh1_TDuty);
-    //Serial.print(",Rc1Qlf:");  Serial.println(RcRcvCh1_qlf);
+  RcRcvCh1ReadPlaus();
+  //Serial.print(",TRc1:");  Serial.print(RcRcvCh1_TDuty);
+  //Serial.print(",Rc1Qlf:");  Serial.println(RcRcvCh1_qlf);
 
+  ReceiveUARTPlaus();
+  Serial.print(",Savg:");  Serial.print(speedAvg_meas);
+
+  //Check if all QLF ok
+  if  (
+      (RcRcvCh1_qlf == 1) 
+      && (RcRcvCh2_qlf == 1) 
+      // && (RcRcvCh3_qlf == 1) 
+      && (RcRcvCh4_qlf == 1) 
+      && (RcRcvCh5_qlf == 1) 
+      && (acclrt_qlf == 1)
+      )
+  {
     RcRcvSpdCmd();
-    Serial.print(",SR:");  Serial.print(RcRcv_SpdCmd);
+    Serial.print(",SC:");  Serial.print(RcRcv_SpdCmd);
 
     RcRcvCtrlMod();
     Serial.print(",CM:");  Serial.print(RcRcv_CtrlMod);
@@ -595,9 +631,35 @@ void Task10ms() {
     //Serial.print(",TA:");  Serial.print(acclrt_TrqCmd);
 
     RcRcvTrqCmd();
-    Serial.print(",TR:");  Serial.println(RcRcv_TrqCmd);
-  
-  SendCommand(0, acclrt_TrqCmd, RcRcv_SpdCmd);
+    // Serial.print(",TR:");  Serial.println(RcRcv_TrqCmd);
+
+    int16_t TrqCmd = 0;
+    //TrqRequest according to CtrlMod
+    if (RcRcv_CtrlMod == RCRCV_CTRLMOD_RC)
+      TrqCmd = RcRcv_TrqCmd;
+    else if (RcRcv_CtrlMod == RCRCV_CTRLMOD_ACCLRT)
+      TrqCmd = acclrt_TrqCmd;
+    else if (RcRcv_CtrlMod == RCRCV_CTRLMOD_RCLIM)
+      TrqCmd = min(acclrt_TrqCmd, RcRcv_TrqCmd);
+
+    Serial.print(",TC:");  Serial.println(TrqCmd);
+    
+    SendCommand(0, TrqCmd, RcRcv_SpdCmd);
+
+  }
+  //at least one QLF not OK -> SAFE STATE and report QLF
+  else
+  {
+    SendCommand(0, 0, 0);
+
+    Serial.print("R1:");  Serial.print(RcRcvCh1_qlf);
+    Serial.print(",R2:");  Serial.print(RcRcvCh2_qlf);
+    Serial.print(",R3:");  Serial.print(RcRcvCh3_qlf);
+    Serial.print(",R4:");  Serial.print(RcRcvCh4_qlf);
+    Serial.print(",R5:");  Serial.print(RcRcvCh5_qlf);
+    Serial.print(",A:");  Serial.println(acclrt_qlf);
+  }
+    
 }
 
 void loop(void) {
