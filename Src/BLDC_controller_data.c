@@ -337,7 +337,7 @@ P rtP_Left = {
    *   '<S82>/cf_nKiLimProt'
    *   '<S83>/cf_nKiLimProt'
    */
-  500U,
+  1500U,
 
   /* Variable: n_polePairs
    * Referenced by: '<S15>/n_polePairs'
