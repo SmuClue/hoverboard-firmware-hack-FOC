@@ -288,7 +288,7 @@ P rtP_Left = {
    *   '<S82>/cf_KbLimProt'
    *   '<S83>/cf_KbLimProt'
    */
-  1000U,
+  768U,
 
   /* Variable: cf_idKp
    * Referenced by: '<S63>/cf_idKp1'
