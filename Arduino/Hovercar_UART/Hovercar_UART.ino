@@ -1,9 +1,12 @@
 
 // ########################## DEFINES ##########################
+// UART
 #define HOVER_SERIAL_BAUD 115200  // [-] Baud rate for Serial3 (used to communicate with the hoverboard)
 #define SERIAL_BAUD 115200        // [-] Baud rate for built-in Serial (used for the Serial Monitor)
 #define START_FRAME 0xABCD        // [-] Start frme definition for reliable serial communication
+#define UART_GND_PIN 16           //GND for UART on Serial 3 (pins 15, 14)
 
+// Accelerator ADC
 #define ACCLRT_SUPPLY_PIN A0     //5V Supply for Accelerator
 #define ACCLRT_SENS_PIN A1       //Sensor ADC for Accelerator
 #define ACCLRT_GND_PIN A2        //GND Supply for Accelerator
@@ -79,6 +82,7 @@
 #define RCRCV_CH5_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
 #define RCRCV_SPDCMD_MIN    0       //Command @ RCRCV_CH5_TD_MIN
 #define RCRCV_SPDCMD_MAX    650    //Command @ RCRCV_CH5_TD_MAX
+#define SPDCMD_REVERSE      100     //Speedlimit when driving reverse
 
 //UART
 #define UART_TIMEOUT      60      //Timeout for last valid UART Receive in millis
@@ -192,6 +196,10 @@ void setup() {
   Serial.println("Hoverboard Serial v1.0");
 
   Serial3.begin(HOVER_SERIAL_BAUD);
+
+  // PIN UART
+  pinMode(UART_GND_PIN, OUTPUT);
+  digitalWrite(UART_GND_PIN, LOW);  //GND-Supply
 
   //PINS ACCLRT
   pinMode(ACCLRT_SUPPLY_PIN, OUTPUT);
@@ -579,7 +587,7 @@ void ReceiveUARTPlaus() {
     Feedback.dc_curr = 0;
   }
   else
-    speedAvg_meas = (Feedback.speedR_meas + Feedback.speedL_meas)/2;
+    speedAvg_meas = (Feedback.speedL_meas - Feedback.speedR_meas)/2;
 }
 
 void Task10ms() {
@@ -644,7 +652,15 @@ void Task10ms() {
 
     Serial.print(",TC:");  Serial.println(TrqCmd);
     
-    SendCommand(0, TrqCmd, RcRcv_SpdCmd);
+    // Speedcommand
+    int16_t SpdCmd = 0;
+    // reverse speedlim
+    if (speedAvg_meas < -10)
+      SpdCmd = SPDCMD_REVERSE;
+    else
+      SpdCmd = RcRcv_SpdCmd;
+
+    SendCommand(0, TrqCmd, SpdCmd);
 
   }
   //at least one QLF not OK -> SAFE STATE and report QLF
