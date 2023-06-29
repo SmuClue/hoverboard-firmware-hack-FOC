@@ -36,6 +36,7 @@
 #define RCRCV_CH2_TD_MIN_DIAG  800      //Min Duty-Time in micros plausible 
 #define RCRCV_CH2_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
 #define RCRCV_CH2_TIMEOUT     60        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
+#define RCRCV_CH2_ERRCNTMAX   5          //max number of Error-Counter bevore Qlf is set to invalid
 #define RCRCV_TRQCMD_MAX    1000        //Command @ RCRCV_CH2_TD_MAX
 #define RCRCV_TRQCMD_ZERO   0           //Command @ RCRCV_CH2_TD_ZERO +- RCRCV_CH2_TD_DEADBAND
 #define RCRCV_TRQCMD_MIN    -500        //Command @ RCRCV_CH2_TD_MIN
@@ -49,6 +50,7 @@
 #define RCRCV_CH1_TD_MIN_DIAG  RCRCV_CH2_TD_MIN_DIAG      //Min Duty-Time in micros plausible
 #define RCRCV_CH1_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
 #define RCRCV_CH1_TIMEOUT     RCRCV_CH2_TIMEOUT        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
+#define RCRCV_CH1_ERRCNTMAX   RCRCV_CH2_ERRCNTMAX          //max number of Error-Counter bevore Qlf is set to invalid
 
 //CH3 RC Pushbutton (Emergency off)
 #define RCRCV_CH3_TD_OFF 1260           //Push Button Off Duty-Time in micros
@@ -58,6 +60,7 @@
 #define RCRCV_CH3_TD_MAX_DIAG  RCRCV_CH2_TD_MAX_DIAG     //Max Duty-Time in micros plausible
 #define RCRCV_CH3_TD_MIN_DIAG  RCRCV_CH2_TD_MIN_DIAG      //Min Duty-Time in micros plausible
 #define RCRCV_CH3_TIMEOUT     RCRCV_CH2_TIMEOUT        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
+#define RCRCV_CH3_ERRCNTMAX   RCRCV_CH2_ERRCNTMAX          //max number of Error-Counter bevore Qlf is set to invalid
 
 //CH4 RC 3-Way-Switch
 #define RCRCV_CH4_TD_LEFT 1260           //3-Way-Switch left Duty-Time in micros
@@ -68,6 +71,7 @@
 #define RCRCV_CH4_TD_MAX_DIAG  RCRCV_CH2_TD_MAX_DIAG     //Max Duty-Time in micros plausible
 #define RCRCV_CH4_TD_MIN_DIAG  RCRCV_CH2_TD_MIN_DIAG      //Min Duty-Time in micros plausible
 #define RCRCV_CH4_TIMEOUT     RCRCV_CH2_TIMEOUT        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
+#define RCRCV_CH4_ERRCNTMAX   RCRCV_CH2_ERRCNTMAX          //max number of Error-Counter bevore Qlf is set to invalid
 #define RCRCV_CTRLMOD_RC        0           //RC-Control-Mode (RC control only)
 #define RCRCV_CTRLMOD_RCLIM     1           //RC-Limiting-Mode (RC limits Acclrt-Command: min(RC,Acclrt))
 #define RCRCV_CTRLMOD_ACCLRT    2           //Accelerator-Control-Mode (Accelerator-Control only (Speed-Control still via RC))
@@ -79,6 +83,7 @@
 #define RCRCV_CH5_TD_MAX_DIAG  RCRCV_CH2_TD_MAX_DIAG     //Max Duty-Time in micros plausible
 #define RCRCV_CH5_TD_MIN_DIAG  RCRCV_CH2_TD_MIN_DIAG      //Min Duty-Time in micros plausible
 #define RCRCV_CH5_TIMEOUT     RCRCV_CH2_TIMEOUT        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
+#define RCRCV_CH5_ERRCNTMAX   RCRCV_CH2_ERRCNTMAX          //max number of Error-Counter bevore Qlf is set to invalid
 #define RCRCV_CH5_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
 #define RCRCV_SPDCMD_MIN    0       //Command @ RCRCV_CH5_TD_MIN
 #define RCRCV_SPDCMD_MAX    650    //Command @ RCRCV_CH5_TD_MAX
@@ -109,7 +114,9 @@ int16_t acclrt_TrqCmd = 0;  //TrqCommand derived from acclrt [ACCLRT_TRQCMD_MIN;
 //RC Receiver Ch2 Throttle
 int16_t RcRcvCh2_TDuty = 0;       //PWM Dutycylce 
 int16_t RcRcvCh2_TDuty_old = 0;   //last cycle
+int16_t RcRcvCh2_TDuty_lastvalid = 0;   //last valid signal
 int16_t RcRcvCh2_qlf = 0;         //0 = unplausible; 1 = plausible; 2 = timeout
+uint8_t RcRcvCh2_errCnt = 0;      //Error cycle counter
 int16_t RcRcv_TrqCmd = 0;       //TrqCommand derived from RcRcvCh2_TDuty
 
 uint16_t tMicrosRcRcvCh2Pwm2 = 2;
@@ -120,7 +127,9 @@ uint8_t RcRcvCh2NewData = 0;
 //RC Receiver Ch1 Steering
 int16_t RcRcvCh1_TDuty = 0;       //PWM Dutycylce 
 int16_t RcRcvCh1_TDuty_old = 0;   //last cycle
+int16_t RcRcvCh1_TDuty_lastvalid = 0;   //last valid signal
 int16_t RcRcvCh1_qlf = 0;         //0 = unplausible; 1 = plausible; 2 = timeout
+uint8_t RcRcvCh1_errCnt = 0;      //Error cycle counter
 
 uint16_t tMicrosRcRcvCh1Pwm2 = 2;
 uint16_t tMicrosRcRcvCh1Pwm1 = 1;
@@ -130,7 +139,9 @@ uint8_t RcRcvCh1NewData = 0;
 //RC Receiver Ch5 Drehknopf
 int16_t RcRcvCh5_TDuty = 0;       //PWM Dutycylce 
 int16_t RcRcvCh5_TDuty_old = 0;   //last cycle
+int16_t RcRcvCh5_TDuty_lastvalid = 0;   //last valid signal
 int16_t RcRcvCh5_qlf = 0;         //0 = unplausible; 1 = plausible; 2 = timeout
+uint8_t RcRcvCh5_errCnt = 0;      //Error cycle counter
 int16_t RcRcv_SpdCmd = 0;       //SpeedCommand derived from RcRcvCh5_TDuty
 
 uint16_t tMicrosRcRcvCh5Pwm2 = 2;
@@ -141,7 +152,9 @@ uint8_t RcRcvCh5NewData = 0;
 //RC Receiver Ch4 3-way-switch
 int16_t RcRcvCh4_TDuty = 0;       //PWM Dutycylce 
 int16_t RcRcvCh4_TDuty_old = 0;   //last cycle
+int16_t RcRcvCh4_TDuty_lastvalid = 0;   //last valid signal
 int16_t RcRcvCh4_qlf = 0;         //0 = unplausible; 1 = plausible; 2 = timeout
+uint8_t RcRcvCh4_errCnt = 0;      //Error cycle counter
 uint8_t RcRcv_CtrlMod = RCRCV_CTRLMOD_SAFE;         //0 = RC-Control; 1 = min(RC, Acclrt); 2 = Acclrt-Control
 
 uint16_t tMicrosRcRcvCh4Pwm2 = 2;
@@ -152,7 +165,9 @@ uint8_t RcRcvCh4NewData = 0;
 //RC Receiver Ch3 Pushbutton
 int16_t RcRcvCh3_TDuty = 0;       //PWM Dutycylce 
 int16_t RcRcvCh3_TDuty_old = 0;   //last cycle
+int16_t RcRcvCh3_TDuty_lastvalid = 0;   //last valid signal
 int16_t RcRcvCh3_qlf = 0;         //0 = unplausible; 1 = plausible; 2 = timeout
+uint8_t RcRcvCh3_errCnt = 0;      //Error cycle counter
 
 uint16_t tMicrosRcRcvCh3Pwm2 = 2;
 uint16_t tMicrosRcRcvCh3Pwm1 = 1;
@@ -397,15 +412,53 @@ void RcRcvCh2ReadPlaus() {
   
   //Check min/max-grenzen und min/max gradient
   if ((RcRcvCh2_TDuty > RCRCV_CH2_TD_MAX_DIAG) || (RcRcvCh2_TDuty < RCRCV_CH2_TD_MIN_DIAG) || (abs(RcRcvCh2_TDuty - RcRcvCh2_TDuty_old) > RCRCV_CH2_TD_GRD_DIAG))
-    RcRcvCh2_qlf = 0;
+  {
+    
+    if (RcRcvCh2_errCnt==0) //Error just occurred -> Set lastvalid to old value
+    {
+      RcRcvCh2_TDuty_lastvalid = RcRcvCh2_TDuty_old;
+      RcRcvCh2_errCnt++;
+      RcRcvCh2_TDuty = RcRcvCh2_TDuty_lastvalid;
+    }
+    else if (RcRcvCh2_errCnt >= RCRCV_CH2_ERRCNTMAX)  //Set Qlf invalid if ERRCNTMAX is reached
+      RcRcvCh2_qlf = 0;
+    else
+    {
+      RcRcvCh2_errCnt++;
+      RcRcvCh2_TDuty = RcRcvCh2_TDuty_lastvalid;
+    }
+    
+  }
+
   else if (((uint16_t)millis() - tMilisRcRcvCh2Pwm) > RCRCV_CH2_TIMEOUT)  //Trigger Timeout -> Set tMicros to init-Value so qlf can only get reset with new valid values
   {
-    RcRcvCh2_qlf = 2;
-    tMicrosRcRcvCh2Pwm2 = 2;
-    tMicrosRcRcvCh2Pwm1 = 1;
+    
+    if (RcRcvCh2_errCnt==0) //Error just occurred -> Set lastvalid to old value
+    {
+      RcRcvCh2_TDuty_lastvalid = RcRcvCh2_TDuty_old;
+      RcRcvCh2_errCnt++;
+      RcRcvCh2_TDuty = RcRcvCh2_TDuty_lastvalid;
+    }
+    else if (RcRcvCh2_errCnt >= RCRCV_CH2_ERRCNTMAX)  //Set Qlf invalid if ERRCNTMAX is reached
+    {
+      RcRcvCh2_qlf = 2;
+      tMicrosRcRcvCh2Pwm2 = 2;
+      tMicrosRcRcvCh2Pwm1 = 1;
+    }
+      
+    else
+    {
+      RcRcvCh2_errCnt++;
+      RcRcvCh2_TDuty = RcRcvCh2_TDuty_lastvalid;
+    }
+
   }
   else if ((RcRcvCh2_TDuty < (RCRCV_CH2_TD_ZERO + RCRCV_CH2_TD_DEADBAND)) && (RcRcvCh2_TDuty > (RCRCV_CH2_TD_ZERO - RCRCV_CH2_TD_DEADBAND)) && (RcRcvCh2_TDuty_old < (RCRCV_CH2_TD_ZERO + RCRCV_CH2_TD_DEADBAND)) && (RcRcvCh2_TDuty_old > (RCRCV_CH2_TD_ZERO - RCRCV_CH2_TD_DEADBAND)))  //Re-Enable Plausi-Status only when CH2 is in zero position for 2 cycles
+  {
     RcRcvCh2_qlf = 1;
+    RcRcvCh2_errCnt = 0;
+  }
+    
 }
 
 void RcRcvCh1ReadPlaus() {
@@ -417,15 +470,52 @@ void RcRcvCh1ReadPlaus() {
 
   //Check min/max-grenzen und min/max gradient
   if ((RcRcvCh1_TDuty > RCRCV_CH1_TD_MAX_DIAG) || (RcRcvCh1_TDuty < RCRCV_CH1_TD_MIN_DIAG) || (abs(RcRcvCh1_TDuty - RcRcvCh1_TDuty_old) > RCRCV_CH1_TD_GRD_DIAG))
-    RcRcvCh1_qlf = 0;
+  {
+    
+    if (RcRcvCh1_errCnt==0) //Error just occurred -> Set lastvalid to old value
+    {
+      RcRcvCh1_TDuty_lastvalid = RcRcvCh1_TDuty_old;
+      RcRcvCh1_errCnt++;
+      RcRcvCh1_TDuty = RcRcvCh1_TDuty_lastvalid;
+    }
+    else if (RcRcvCh1_errCnt >= RCRCV_CH1_ERRCNTMAX)  //Set Qlf invalid if ERRCNTMAX is reached
+      RcRcvCh1_qlf = 0;
+    else
+    {
+      RcRcvCh1_errCnt++;
+      RcRcvCh1_TDuty = RcRcvCh1_TDuty_lastvalid;
+    }
+    
+  }
+
   else if (((uint16_t)millis() - tMilisRcRcvCh1Pwm) > RCRCV_CH1_TIMEOUT)  //Trigger Timeout -> Set tMicros to init-Value so qlf can only get reset with new valid values
   {
-    RcRcvCh1_qlf = 2;
-    tMicrosRcRcvCh1Pwm2 = 2;
-    tMicrosRcRcvCh1Pwm1 = 1;
+    
+    if (RcRcvCh1_errCnt==0) //Error just occurred -> Set lastvalid to old value
+    {
+      RcRcvCh1_TDuty_lastvalid = RcRcvCh1_TDuty_old;
+      RcRcvCh1_errCnt++;
+      RcRcvCh1_TDuty = RcRcvCh1_TDuty_lastvalid;
+    }
+    else if (RcRcvCh1_errCnt >= RCRCV_CH1_ERRCNTMAX)  //Set Qlf invalid if ERRCNTMAX is reached
+    {
+      RcRcvCh1_qlf = 2;
+      tMicrosRcRcvCh1Pwm2 = 2;
+      tMicrosRcRcvCh1Pwm1 = 1;
+    }
+      
+    else
+    {
+      RcRcvCh1_errCnt++;
+      RcRcvCh1_TDuty = RcRcvCh1_TDuty_lastvalid;
+    }
+
   }
-  else if ((RcRcvCh1_TDuty < (RCRCV_CH1_TD_ZERO + RCRCV_CH1_TD_DEADBAND)) && (RcRcvCh1_TDuty > (RCRCV_CH1_TD_ZERO - RCRCV_CH1_TD_DEADBAND)) && (RcRcvCh1_TDuty_old < (RCRCV_CH1_TD_ZERO + RCRCV_CH1_TD_DEADBAND)) && (RcRcvCh1_TDuty_old > (RCRCV_CH1_TD_ZERO - RCRCV_CH1_TD_DEADBAND)))  //Re-Enable Plausi-Status only when Ch1 is in zero position for 2 cycles
+  else if ((RcRcvCh1_TDuty < (RCRCV_CH1_TD_ZERO + RCRCV_CH1_TD_DEADBAND)) && (RcRcvCh1_TDuty > (RCRCV_CH1_TD_ZERO - RCRCV_CH1_TD_DEADBAND)) && (RcRcvCh1_TDuty_old < (RCRCV_CH1_TD_ZERO + RCRCV_CH1_TD_DEADBAND)) && (RcRcvCh1_TDuty_old > (RCRCV_CH1_TD_ZERO - RCRCV_CH1_TD_DEADBAND)))  //Re-Enable Plausi-Status only when CH1 is in zero position for 2 cycles
+  {
     RcRcvCh1_qlf = 1;
+    RcRcvCh1_errCnt = 0;
+  }
 }
 
 void RcRcvCh5ReadPlaus() {
@@ -437,15 +527,49 @@ void RcRcvCh5ReadPlaus() {
 
   //Check min/max-grenzen und min/max gradient
   if ((RcRcvCh5_TDuty > RCRCV_CH5_TD_MAX_DIAG) || (RcRcvCh5_TDuty < RCRCV_CH5_TD_MIN_DIAG) || (abs(RcRcvCh5_TDuty - RcRcvCh5_TDuty_old) > RCRCV_CH5_TD_GRD_DIAG))
-    RcRcvCh5_qlf = 0;
+    
+    if (RcRcvCh5_errCnt==0) //Error just occurred -> Set lastvalid to old value
+    {
+      RcRcvCh5_TDuty_lastvalid = RcRcvCh5_TDuty_old;
+      RcRcvCh5_errCnt++;
+      RcRcvCh5_TDuty = RcRcvCh5_TDuty_lastvalid;
+    }
+    else if (RcRcvCh5_errCnt >= RCRCV_CH5_ERRCNTMAX)  //Set Qlf invalid if ERRCNTMAX is reached
+      RcRcvCh5_qlf = 0;
+    else
+    {
+      RcRcvCh5_errCnt++;
+      RcRcvCh5_TDuty = RcRcvCh5_TDuty_lastvalid;
+    }
+
   else if (((uint16_t)millis() - tMilisRcRcvCh5Pwm) > RCRCV_CH5_TIMEOUT)  //Trigger Timeout -> Set tMicros to init-Value so qlf can only get reset with new valid values
   {
-    RcRcvCh5_qlf = 2;
-    tMicrosRcRcvCh5Pwm2 = 2;
-    tMicrosRcRcvCh5Pwm1 = 1;
+    
+    if (RcRcvCh5_errCnt==0) //Error just occurred -> Set lastvalid to old value
+    {
+      RcRcvCh5_TDuty_lastvalid = RcRcvCh5_TDuty_old;
+      RcRcvCh5_errCnt++;
+      RcRcvCh5_TDuty = RcRcvCh5_TDuty_lastvalid;
+    }
+    else if (RcRcvCh5_errCnt >= RCRCV_CH5_ERRCNTMAX)  //Set Qlf invalid if ERRCNTMAX is reached
+    {
+      RcRcvCh5_qlf = 2;
+      tMicrosRcRcvCh5Pwm2 = 2;
+      tMicrosRcRcvCh5Pwm1 = 1;
+    }
+      
+    else
+    {
+      RcRcvCh5_errCnt++;
+      RcRcvCh5_TDuty = RcRcvCh5_TDuty_lastvalid;
+    }
+
   }
   else //Re-Enable Plausi-Status if no error was found
+  {
     RcRcvCh5_qlf = 1;
+    RcRcvCh5_errCnt = 0;
+  }
 }
 
 void RcRcvCh4ReadPlaus() {
@@ -457,18 +581,69 @@ void RcRcvCh4ReadPlaus() {
 
   //Check min/max-grenzen und min/max gradient
   if ((RcRcvCh4_TDuty > RCRCV_CH4_TD_MAX_DIAG) || (RcRcvCh4_TDuty < RCRCV_CH4_TD_MIN_DIAG))
-    RcRcvCh4_qlf = 0;
+  {
+    
+    if (RcRcvCh4_errCnt==0) //Error just occurred -> Set lastvalid to old value
+    {
+      RcRcvCh4_TDuty_lastvalid = RcRcvCh4_TDuty_old;
+      RcRcvCh4_errCnt++;
+      RcRcvCh4_TDuty = RcRcvCh4_TDuty_lastvalid;
+    }
+    else if (RcRcvCh4_errCnt >= RCRCV_CH4_ERRCNTMAX)  //Set Qlf invalid if ERRCNTMAX is reached
+      RcRcvCh4_qlf = 0;
+    else
+    {
+      RcRcvCh4_errCnt++;
+      RcRcvCh4_TDuty = RcRcvCh4_TDuty_lastvalid;
+    }
+    
+  }
   else if (((uint16_t)millis() - tMilisRcRcvCh4Pwm) > RCRCV_CH4_TIMEOUT)  //Trigger Timeout -> Set tMicros to init-Value so qlf can only get reset with new valid values
   {
-    RcRcvCh4_qlf = 2;
-    tMicrosRcRcvCh4Pwm2 = 2;
-    tMicrosRcRcvCh4Pwm1 = 1;
+    if (RcRcvCh4_errCnt==0) //Error just occurred -> Set lastvalid to old value
+    {
+      RcRcvCh4_TDuty_lastvalid = RcRcvCh4_TDuty_old;
+      RcRcvCh4_errCnt++;
+      RcRcvCh4_TDuty = RcRcvCh4_TDuty_lastvalid;
+    }
+    else if (RcRcvCh4_errCnt >= RCRCV_CH4_ERRCNTMAX)  //Set Qlf invalid if ERRCNTMAX is reached
+    {
+      RcRcvCh4_qlf = 2;
+      tMicrosRcRcvCh4Pwm2 = 2;
+      tMicrosRcRcvCh4Pwm1 = 1;
+    }
+      
+    else
+    {
+      RcRcvCh4_errCnt++;
+      RcRcvCh4_TDuty = RcRcvCh4_TDuty_lastvalid;
+    }
   }
   //check if outside tolerance bands around states
   else if (((RcRcvCh4_TDuty > (RCRCV_CH4_TD_LEFT + RCRCV_CH4_TD_TOLERANCE)) || (RcRcvCh4_TDuty < (RCRCV_CH4_TD_LEFT - RCRCV_CH4_TD_TOLERANCE))) && ((RcRcvCh4_TDuty > (RCRCV_CH4_TD_MID + RCRCV_CH4_TD_TOLERANCE)) || (RcRcvCh4_TDuty < (RCRCV_CH4_TD_MID - RCRCV_CH4_TD_TOLERANCE))) && ((RcRcvCh4_TDuty > (RCRCV_CH4_TD_RIGHT + RCRCV_CH4_TD_TOLERANCE)) || (RcRcvCh4_TDuty < (RCRCV_CH4_TD_RIGHT - RCRCV_CH4_TD_TOLERANCE))))
-    RcRcvCh4_qlf = 0;
+  {
+    
+    if (RcRcvCh4_errCnt==0) //Error just occurred -> Set lastvalid to old value
+    {
+      RcRcvCh4_TDuty_lastvalid = RcRcvCh4_TDuty_old;
+      RcRcvCh4_errCnt++;
+      RcRcvCh4_TDuty = RcRcvCh4_TDuty_lastvalid;
+    }
+    else if (RcRcvCh4_errCnt >= RCRCV_CH4_ERRCNTMAX)  //Set Qlf invalid if ERRCNTMAX is reached
+      RcRcvCh4_qlf = 0;
+    else
+    {
+      RcRcvCh4_errCnt++;
+      RcRcvCh4_TDuty = RcRcvCh4_TDuty_lastvalid;
+    }
+    
+  }
+
   else //Re-Enable Plausi-Status if no error was found
+  {
     RcRcvCh4_qlf = 1;
+    RcRcvCh4_errCnt = 0;
+  }
 }
 
 void RcRcvCh3ReadPlaus() {
@@ -480,18 +655,70 @@ void RcRcvCh3ReadPlaus() {
 
   //Check min/max-grenzen und min/max gradient
   if ((RcRcvCh3_TDuty > RCRCV_CH3_TD_MAX_DIAG) || (RcRcvCh3_TDuty < RCRCV_CH3_TD_MIN_DIAG))
-    RcRcvCh3_qlf = 0;
+  {
+    
+    if (RcRcvCh3_errCnt==0) //Error just occurred -> Set lastvalid to old value
+    {
+      RcRcvCh3_TDuty_lastvalid = RcRcvCh3_TDuty_old;
+      RcRcvCh3_errCnt++;
+      RcRcvCh3_TDuty = RcRcvCh3_TDuty_lastvalid;
+    }
+    else if (RcRcvCh3_errCnt >= RCRCV_CH3_ERRCNTMAX)  //Set Qlf invalid if ERRCNTMAX is reached
+      RcRcvCh3_qlf = 0;
+    else
+    {
+      RcRcvCh3_errCnt++;
+      RcRcvCh3_TDuty = RcRcvCh3_TDuty_lastvalid;
+    }
+    
+  }
   else if (((uint16_t)millis() - tMilisRcRcvCh3Pwm) > RCRCV_CH3_TIMEOUT)  //Trigger Timeout -> Set tMicros to init-Value so qlf can only get reset with new valid values
   {
-    RcRcvCh3_qlf = 2;
-    tMicrosRcRcvCh3Pwm2 = 2;
-    tMicrosRcRcvCh3Pwm1 = 1;
+    
+    if (RcRcvCh3_errCnt==0) //Error just occurred -> Set lastvalid to old value
+    {
+      RcRcvCh3_TDuty_lastvalid = RcRcvCh3_TDuty_old;
+      RcRcvCh3_errCnt++;
+      RcRcvCh3_TDuty = RcRcvCh3_TDuty_lastvalid;
+    }
+    else if (RcRcvCh3_errCnt >= RCRCV_CH3_ERRCNTMAX)  //Set Qlf invalid if ERRCNTMAX is reached
+    {
+      RcRcvCh3_qlf = 2;
+      tMicrosRcRcvCh3Pwm2 = 2;
+      tMicrosRcRcvCh3Pwm1 = 1;
+    }
+      
+    else
+    {
+      RcRcvCh3_errCnt++;
+      RcRcvCh3_TDuty = RcRcvCh3_TDuty_lastvalid;
+    }
+
   }
   //check if outside tolerance bands around states
   else if (((RcRcvCh3_TDuty > (RCRCV_CH3_TD_ON + RCRCV_CH3_TD_TOLERANCE)) || (RcRcvCh3_TDuty < (RCRCV_CH3_TD_ON - RCRCV_CH3_TD_TOLERANCE))) && ((RcRcvCh3_TDuty > (RCRCV_CH3_TD_OFF + RCRCV_CH3_TD_TOLERANCE)) || (RcRcvCh3_TDuty < (RCRCV_CH3_TD_OFF - RCRCV_CH3_TD_TOLERANCE))))
-    RcRcvCh3_qlf = 0;
+  {
+    
+    if (RcRcvCh3_errCnt==0) //Error just occurred -> Set lastvalid to old value
+    {
+      RcRcvCh3_TDuty_lastvalid = RcRcvCh3_TDuty_old;
+      RcRcvCh3_errCnt++;
+      RcRcvCh3_TDuty = RcRcvCh3_TDuty_lastvalid;
+    }
+    else if (RcRcvCh3_errCnt >= RCRCV_CH3_ERRCNTMAX)  //Set Qlf invalid if ERRCNTMAX is reached
+      RcRcvCh3_qlf = 0;
+    else
+    {
+      RcRcvCh3_errCnt++;
+      RcRcvCh3_TDuty = RcRcvCh3_TDuty_lastvalid;
+    }
+    
+  }
   else //Re-Enable Plausi-Status if no error was found
+  {
     RcRcvCh3_qlf = 1;
+    RcRcvCh3_errCnt = 0;
+  }
 }
 
 void AcclrtReadPlaus() {
@@ -597,8 +824,9 @@ void Task10ms() {
   //Serial.print(",pls:");  Serial.print(acclrt_qlf);
 
   RcRcvCh2ReadPlaus();
-  //Serial.print(",TRc2:");  Serial.print(RcRcvCh2_TDuty);
-  //Serial.print(",Rc2Qlf:");  Serial.print(RcRcvCh2_qlf);
+  Serial.print(",TRc2:");  Serial.print(RcRcvCh2_TDuty);
+  Serial.print(",Rc2Qlf:");  Serial.print(RcRcvCh2_qlf);
+  Serial.print(",Rc2EC:");  Serial.print(RcRcvCh2_errCnt);
 
   RcRcvCh5ReadPlaus();
   //Serial.print(",TRc5:");  Serial.print(RcRcvCh5_TDuty);
