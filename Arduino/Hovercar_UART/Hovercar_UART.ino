@@ -15,6 +15,7 @@
 #define ACCLRT_ADC_MAX 810       //MIN-Value of ADC over wich TrqRequest starts
 #define ACCLRT_ADC_MAX_DIAG 870  //MIN-Threshold of ADC for Diagnosis
 #define ACCLRT_ADC_GRD_DIAG 300   //MAX-Absolute change of ADC over 1 Cycle for Diagnosis
+#define ACCLRT_ERRCNTMAX   5          //max number of Error-Counter bevore Qlf is set to invalid
 #define ACCLRT_TRQCMD_MAX 1000   //Command @ ADC_MAX
 #define ACCLRT_TRQCMD_MIN 0    //Command @ ADC_MIN
 
@@ -108,7 +109,9 @@ uint16_t t10ms;
 
 int16_t acclrt_adc = 0;     //raw ADC-Value
 int16_t acclrt_adc_old = 0; //ADC-Value last cycle
+int16_t acclrt_adc_lastvalid = 0; //last valid ADC-Value
 uint8_t acclrt_qlf = 0;     //0 = unplausible; 1 = plausible; 2 = timeout
+uint8_t acclrt_errCnt = 0;      //Error cycle counter
 int16_t acclrt_TrqCmd = 0;  //TrqCommand derived from acclrt [ACCLRT_TRQCMD_MIN; ACCLRT_TRQCMD_MAX]
 
 //RC Receiver Ch2 Throttle
@@ -727,9 +730,29 @@ void AcclrtReadPlaus() {
 
   //Check min/max-grenzen und min/max gradient
   if ((acclrt_adc > ACCLRT_ADC_MAX_DIAG) || (acclrt_adc < ACCLRT_ADC_MIN_DIAG) || (abs(acclrt_adc - acclrt_adc_old) > ACCLRT_ADC_GRD_DIAG))
-    acclrt_qlf = 0;
+  {
+    
+    if (acclrt_errCnt==0) //Error just occurred -> Set lastvalid to old value
+    {
+      acclrt_adc_lastvalid = acclrt_adc_old;
+      acclrt_errCnt++;
+      acclrt_adc = acclrt_adc_lastvalid;
+    }
+    else if (acclrt_errCnt >= ACCLRT_ERRCNTMAX)  //Set Qlf invalid if ERRCNTMAX is reached
+      acclrt_qlf = 0;
+    else
+    {
+      acclrt_errCnt++;
+      acclrt_adc = acclrt_adc_lastvalid;
+    }
+    
+  }
   else if ((acclrt_adc < ACCLRT_ADC_MIN) && (acclrt_adc_old < ACCLRT_ADC_MIN))  //Re-Enable Plausi-Status only when acclrt not betätigt for 2 cycles
+  {
     acclrt_qlf = 1;
+    acclrt_errCnt = 0;
+  }
+    
 
   //TODO: Evtl. Feedback über Unplausibel-Status über Piepen oder LED
 }
@@ -820,8 +843,9 @@ void ReceiveUARTPlaus() {
 void Task10ms() {
 
   AcclrtReadPlaus();
-  //Serial.print("adc:");  Serial.print(acclrt_adc);
-  //Serial.print(",pls:");  Serial.print(acclrt_qlf);
+  Serial.print("adc:");  Serial.print(acclrt_adc);
+  Serial.print(",acQlf:");  Serial.print(acclrt_qlf);
+  Serial.print(",acEC:");  Serial.print(acclrt_errCnt);
 
   RcRcvCh2ReadPlaus();
   Serial.print(",TRc2:");  Serial.print(RcRcvCh2_TDuty);
