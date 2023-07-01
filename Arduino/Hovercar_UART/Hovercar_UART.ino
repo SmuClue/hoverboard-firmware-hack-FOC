@@ -28,6 +28,9 @@
 #define RCRCV_CH4_PIN 20         //PWM In for RC-Receiver CH4 (3-Way-Switch)
 #define RCRCV_CH3_PIN 19         //PWM In for RC-Receiver CH4 (3-Way-Switch)
 
+//DC-Relais PINS
+#define DCRELAIS_PIN 8          //Digital out controlling DC-Relais
+
 //CH2 RC Throttle (RcRcv_TrqCmd)
 #define RCRCV_CH2_TD_MIN  900           //Min Duty-Time in micros 
 #define RCRCV_CH2_TD_ZERO 1500          //Middle/Zero/RC-Off Duty-Time in micros
@@ -65,6 +68,7 @@
 #define RCRCV_CH3_TD_MIN_DIAG  RCRCV_CH2_TD_MIN_DIAG      //Min Duty-Time in micros plausible
 #define RCRCV_CH3_TIMEOUT     RCRCV_CH2_TIMEOUT        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
 #define RCRCV_CH3_ERRCNTMAX   RCRCV_CH2_ERRCNTMAX          //max number of Error-Counter bevore Qlf is set to invalid
+#define RCRCV_EMERGOFFCNT_RELAIS  5           //after this number of cycles in emergency off the relais are opened (some time needed to reduce DC current first)
 
 //CH4 RC 3-Way-Switch
 #define RCRCV_CH4_TD_LEFT 1260           //3-Way-Switch left Duty-Time in micros
@@ -175,6 +179,8 @@ int16_t RcRcvCh3_TDuty_old = 0;   //last cycle
 int16_t RcRcvCh3_TDuty_lastvalid = 0;   //last valid signal
 int16_t RcRcvCh3_qlf = 0;         //0 = unplausible; 1 = plausible; 2 = timeout
 uint8_t RcRcvCh3_errCnt = 0;      //Error cycle counter
+uint8_t RcRcv_EmergOff = 0;       //0 = normal operation; 1 = emergency off
+uint8_t RcRcv_EmergOffCnt = 0;    //cycle counter
 
 uint16_t tMicrosRcRcvCh3Pwm2 = 2;
 uint16_t tMicrosRcRcvCh3Pwm1 = 1;
@@ -202,10 +208,10 @@ typedef struct {
   int16_t cmd2;
   int16_t speedR_meas;
   int16_t speedL_meas;
-  int16_t batVoltage;
-  int16_t boardTemp;
+  int16_t batVoltage;   //*10
+  int16_t boardTemp;    //*10
   //uint16_t cmdLed;
-  int16_t dc_curr;
+  int16_t dc_curr;      //*100
   uint16_t checksum;
 } SerialFeedback;
 SerialFeedback Feedback;
@@ -249,6 +255,10 @@ void setup() {
   //CH3
   pinMode(RCRCV_CH3_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(RCRCV_CH3_PIN), IsrRcRcvCh3, CHANGE);
+
+  // PINS DC-Relais
+  pinMode(DCRELAIS_PIN, OUTPUT);
+  digitalWrite(DCRELAIS_PIN, LOW);
 
   //Initialize
   t = millis();
@@ -395,8 +405,8 @@ void Receive() {
       // Serial.print(Feedback.speedL_meas);
       Serial.print(",Ub:");
       Serial.print(Feedback.batVoltage);
-      // Serial.print(",Tb:");
-      // Serial.print(Feedback.boardTemp);
+      Serial.print(",Tb:");
+      Serial.print(Feedback.boardTemp);
       Serial.print(",Idc:");
       Serial.println(Feedback.dc_curr);
     } else {
@@ -851,6 +861,31 @@ void RcRcvCtrlMod() {
   }
 }
 
+void RcRcvEmergOff() {
+  if (RcRcvCh3_qlf == 0) {
+    RcRcv_EmergOff = 0;   //No Emergency Off when Qlf not valid
+  } else {
+    //Pushbutton off -> normal operation
+    if ((RcRcvCh3_TDuty >= (RCRCV_CH3_TD_OFF - RCRCV_CH3_TD_TOLERANCE)) && (RcRcvCh3_TDuty <= (RCRCV_CH3_TD_OFF + RCRCV_CH3_TD_TOLERANCE)))
+    {
+      RcRcv_EmergOff = 0;
+      RcRcv_EmergOffCnt = 0;
+    }
+    //Pushbutton on -> Emergency Off
+    if ((RcRcvCh3_TDuty >= (RCRCV_CH3_TD_ON - RCRCV_CH3_TD_TOLERANCE)) && (RcRcvCh3_TDuty <= (RCRCV_CH3_TD_ON + RCRCV_CH3_TD_TOLERANCE)))
+    {
+      RcRcv_EmergOff = 1;
+      if (RcRcv_EmergOffCnt < 255)
+        RcRcv_EmergOffCnt++;
+    }
+    else 
+    {
+      RcRcv_EmergOff = 0;
+      RcRcv_EmergOffCnt = 0;
+    }
+  }
+}
+
 void ReceiveUARTPlaus() {
   if (((uint16_t)millis() - tMillisUART) > UART_TIMEOUT)  //Trigger Timeout
   {
@@ -911,42 +946,58 @@ void Task10ms() {
       && (acclrt_qlf == 1)
       )
   {
-    RcRcvSpdCmd();
-    Serial.print(",SC:");  Serial.print(RcRcv_SpdCmd);
+    RcRcvEmergOff();
+    Serial.print(",EO:");  Serial.print(RcRcv_EmergOff);
+    Serial.print(",EOC:");  Serial.print(RcRcv_EmergOffCnt);
 
-    RcRcvStrCmd();
-    Serial.print(",StC:");  Serial.print(RcRcv_StrCmd);
+    //Emergency Off procedure
+    if (RcRcv_EmergOff == 1)
+    {
+      SendCommand(0, 0, 0);
+      if (RcRcv_EmergOffCnt > RCRCV_EMERGOFFCNT_RELAIS)
+        digitalWrite(DCRELAIS_PIN, LOW);  //Turn Off/Open DC-Relais
+    }
+    //No Emergency Off
+    else 
+    {
+      digitalWrite(DCRELAIS_PIN, HIGH);  //Turn On/Close DC-Relais
 
-    RcRcvCtrlMod();
-    Serial.print(",CM:");  Serial.print(RcRcv_CtrlMod);
+      RcRcvSpdCmd();
+      Serial.print(",SC:");  Serial.print(RcRcv_SpdCmd);
 
-    AcclrtTrqCmd();
-    //Serial.print(",TA:");  Serial.print(acclrt_TrqCmd);
+      RcRcvStrCmd();
+      Serial.print(",StC:");  Serial.print(RcRcv_StrCmd);
 
-    RcRcvTrqCmd();
-    // Serial.print(",TR:");  Serial.println(RcRcv_TrqCmd);
+      RcRcvCtrlMod();
+      Serial.print(",CM:");  Serial.print(RcRcv_CtrlMod);
 
-    int16_t TrqCmd = 0;
-    //TrqRequest according to CtrlMod
-    if (RcRcv_CtrlMod == RCRCV_CTRLMOD_RC)
-      TrqCmd = RcRcv_TrqCmd;
-    else if (RcRcv_CtrlMod == RCRCV_CTRLMOD_ACCLRT)
-      TrqCmd = acclrt_TrqCmd;
-    else if (RcRcv_CtrlMod == RCRCV_CTRLMOD_RCLIM)
-      TrqCmd = min(acclrt_TrqCmd, RcRcv_TrqCmd);
+      AcclrtTrqCmd();
+      //Serial.print(",TA:");  Serial.print(acclrt_TrqCmd);
 
-    Serial.print(",TC:");  Serial.println(TrqCmd);
-    
-    // Speedcommand
-    int16_t SpdCmd = 0;
-    // reverse speedlim
-    if (speedAvg_meas < -(SPDCMD_REVERSE - 20))
-      SpdCmd = SPDCMD_REVERSE;
-    else
-      SpdCmd = RcRcv_SpdCmd;
+      RcRcvTrqCmd();
+      // Serial.print(",TR:");  Serial.println(RcRcv_TrqCmd);
 
-    SendCommand(RcRcv_StrCmd, TrqCmd, SpdCmd);
+      int16_t TrqCmd = 0;
+      //TrqRequest according to CtrlMod
+      if (RcRcv_CtrlMod == RCRCV_CTRLMOD_RC)
+        TrqCmd = RcRcv_TrqCmd;
+      else if (RcRcv_CtrlMod == RCRCV_CTRLMOD_ACCLRT)
+        TrqCmd = acclrt_TrqCmd;
+      else if (RcRcv_CtrlMod == RCRCV_CTRLMOD_RCLIM)
+        TrqCmd = min(acclrt_TrqCmd, RcRcv_TrqCmd);
 
+      Serial.print(",TC:");  Serial.println(TrqCmd);
+      
+      // Speedcommand
+      int16_t SpdCmd = 0;
+      // reverse speedlim
+      if (speedAvg_meas < -(SPDCMD_REVERSE - 20))
+        SpdCmd = SPDCMD_REVERSE;
+      else
+        SpdCmd = RcRcv_SpdCmd;
+
+      SendCommand(RcRcv_StrCmd, TrqCmd, SpdCmd);
+    }
   }
   //at least one QLF not OK -> SAFE STATE and report QLF
   else
