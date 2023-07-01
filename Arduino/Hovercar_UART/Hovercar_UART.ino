@@ -46,12 +46,15 @@
 #define RCRCV_CH1_TD_MIN  1100           //Min Duty-Time in micros
 #define RCRCV_CH1_TD_ZERO 1500          //Middle/Zero/RC-Off Duty-Time in micros
 #define RCRCV_CH1_TD_MAX  1900          //Max Duty-Time in micros
-#define RCRCV_CH1_TD_DEADBAND 40        //Deadband Duty-Time around TD_ZERO in micros
+#define RCRCV_CH1_TD_DEADBAND 50        //Deadband Duty-Time around TD_ZERO in micros
 #define RCRCV_CH1_TD_MAX_DIAG  RCRCV_CH2_TD_MAX_DIAG     //Max Duty-Time in micros plausible
 #define RCRCV_CH1_TD_MIN_DIAG  RCRCV_CH2_TD_MIN_DIAG      //Min Duty-Time in micros plausible
 #define RCRCV_CH1_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
 #define RCRCV_CH1_TIMEOUT     RCRCV_CH2_TIMEOUT        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
 #define RCRCV_CH1_ERRCNTMAX   RCRCV_CH2_ERRCNTMAX          //max number of Error-Counter bevore Qlf is set to invalid
+#define RCRCV_STRCMD_MAX    500         //Command @ RCRCV_CH1_TD_MAX
+#define RCRCV_STRCMD_ZERO   0           //Command @ RCRCV_CH1_TD_ZERO +- RCRCV_CH1_TD_DEADBAND
+#define RCRCV_STRCMD_MIN    -500        //Command @ RCRCV_CH1_TD_MIN
 
 //CH3 RC Pushbutton (Emergency off)
 #define RCRCV_CH3_TD_OFF 1260           //Push Button Off Duty-Time in micros
@@ -133,6 +136,7 @@ int16_t RcRcvCh1_TDuty_old = 0;   //last cycle
 int16_t RcRcvCh1_TDuty_lastvalid = 0;   //last valid signal
 int16_t RcRcvCh1_qlf = 0;         //0 = unplausible; 1 = plausible; 2 = timeout
 uint8_t RcRcvCh1_errCnt = 0;      //Error cycle counter
+int16_t RcRcv_StrCmd = 0;      //Steering-Command (Tank-Steering) from RcRcvCh1_TDuty
 
 uint16_t tMicrosRcRcvCh1Pwm2 = 2;
 uint16_t tMicrosRcRcvCh1Pwm1 = 1;
@@ -389,12 +393,12 @@ void Receive() {
       // Serial.print(Feedback.speedR_meas);
       // Serial.print(",sL:");
       // Serial.print(Feedback.speedL_meas);
-      // Serial.print(",Ub:");
-      // Serial.print(Feedback.batVoltage);
+      Serial.print(",Ub:");
+      Serial.print(Feedback.batVoltage);
       // Serial.print(",Tb:");
       // Serial.print(Feedback.boardTemp);
-      // Serial.print(",Idc:");
-      // Serial.println(Feedback.dc_curr);
+      Serial.print(",Idc:");
+      Serial.println(Feedback.dc_curr);
     } else {
       Serial.println("CRC");
     }
@@ -793,6 +797,32 @@ void RcRcvTrqCmd() {
   }
 }
 
+void RcRcvStrCmd() {
+  if (RcRcvCh1_qlf == 0) {
+    RcRcv_StrCmd = RCRCV_STRCMD_ZERO;
+  } else {
+    //TD inside Deadband
+    if ((RcRcvCh1_TDuty >= (RCRCV_CH1_TD_ZERO - RCRCV_CH1_TD_DEADBAND)) && (RcRcvCh1_TDuty <= (RCRCV_CH1_TD_ZERO + RCRCV_CH1_TD_DEADBAND)))
+        RcRcv_StrCmd = RCRCV_TRQCMD_ZERO;
+    //TD on possitive TrqDemand
+    else if (RcRcvCh1_TDuty > (RCRCV_CH1_TD_ZERO + RCRCV_CH1_TD_DEADBAND))
+    {
+         int16_t RcRcvCh1_TDuty_lim = max(min(RcRcvCh1_TDuty, RCRCV_CH1_TD_MAX), (RCRCV_CH1_TD_ZERO + RCRCV_CH1_TD_DEADBAND));  //limit to Min/Max-Values
+         
+         RcRcv_StrCmd = (int16_t)((((int32_t)RcRcvCh1_TDuty_lim - (RCRCV_CH1_TD_ZERO + RCRCV_CH1_TD_DEADBAND)) * (RCRCV_STRCMD_MAX - RCRCV_STRCMD_ZERO)) / (RCRCV_CH1_TD_MAX - (RCRCV_CH1_TD_ZERO + RCRCV_CH1_TD_DEADBAND)) + RCRCV_STRCMD_ZERO);
+    }
+    //TD on negative TrqDemand
+    else if (RcRcvCh1_TDuty < (RCRCV_CH1_TD_ZERO - RCRCV_CH1_TD_DEADBAND))
+    {
+        int16_t RcRcvCh1_TDuty_lim = max(min(RcRcvCh1_TDuty, (RCRCV_CH1_TD_ZERO - RCRCV_CH1_TD_DEADBAND)), RCRCV_CH1_TD_MIN);  //limit to Min/Max-Values
+
+        RcRcv_StrCmd = (int16_t)((((int32_t)RcRcvCh1_TDuty_lim - (RCRCV_CH1_TD_ZERO - RCRCV_CH1_TD_DEADBAND)) * (RCRCV_STRCMD_ZERO - RCRCV_STRCMD_MIN)) / ((RCRCV_CH1_TD_ZERO - RCRCV_CH1_TD_DEADBAND) - RCRCV_CH1_TD_MIN) + RCRCV_STRCMD_ZERO);
+    }
+    else 
+        RcRcv_StrCmd = RCRCV_STRCMD_ZERO; 
+  }
+}
+
 void RcRcvSpdCmd() {
   if (RcRcvCh5_qlf == 0) {
     RcRcv_SpdCmd = RCRCV_SPDCMD_MIN;
@@ -843,14 +873,14 @@ void ReceiveUARTPlaus() {
 void Task10ms() {
 
   AcclrtReadPlaus();
-  Serial.print("adc:");  Serial.print(acclrt_adc);
-  Serial.print(",acQlf:");  Serial.print(acclrt_qlf);
-  Serial.print(",acEC:");  Serial.print(acclrt_errCnt);
+  // Serial.print("adc:");  Serial.print(acclrt_adc);
+  // Serial.print(",acQlf:");  Serial.print(acclrt_qlf);
+  // Serial.print(",acEC:");  Serial.print(acclrt_errCnt);
 
   RcRcvCh2ReadPlaus();
-  Serial.print(",TRc2:");  Serial.print(RcRcvCh2_TDuty);
-  Serial.print(",Rc2Qlf:");  Serial.print(RcRcvCh2_qlf);
-  Serial.print(",Rc2EC:");  Serial.print(RcRcvCh2_errCnt);
+  // Serial.print(",TRc2:");  Serial.print(RcRcvCh2_TDuty);
+  // Serial.print(",Rc2Qlf:");  Serial.print(RcRcvCh2_qlf);
+  // Serial.print(",Rc2EC:");  Serial.print(RcRcvCh2_errCnt);
 
   RcRcvCh5ReadPlaus();
   //Serial.print(",TRc5:");  Serial.print(RcRcvCh5_TDuty);
@@ -884,6 +914,9 @@ void Task10ms() {
     RcRcvSpdCmd();
     Serial.print(",SC:");  Serial.print(RcRcv_SpdCmd);
 
+    RcRcvStrCmd();
+    Serial.print(",StC:");  Serial.print(RcRcv_StrCmd);
+
     RcRcvCtrlMod();
     Serial.print(",CM:");  Serial.print(RcRcv_CtrlMod);
 
@@ -907,12 +940,12 @@ void Task10ms() {
     // Speedcommand
     int16_t SpdCmd = 0;
     // reverse speedlim
-    if (speedAvg_meas < -10)
+    if (speedAvg_meas < -(SPDCMD_REVERSE - 20))
       SpdCmd = SPDCMD_REVERSE;
     else
       SpdCmd = RcRcv_SpdCmd;
 
-    SendCommand(0, TrqCmd, SpdCmd);
+    SendCommand(RcRcv_StrCmd, TrqCmd, SpdCmd);
 
   }
   //at least one QLF not OK -> SAFE STATE and report QLF
