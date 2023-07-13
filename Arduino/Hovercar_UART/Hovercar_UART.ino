@@ -2,7 +2,7 @@
 // ########################## DEFINES ##########################
 // UART
 #define HOVER_SERIAL_BAUD 115200  // [-] Baud rate for Serial3 (used to communicate with the hoverboard)
-#define SERIAL_BAUD 115200        // [-] Baud rate for built-in Serial (used for the Serial Monitor)
+#define SERIAL_BAUD 38400        // [-] Baud rate for USB and Bluetooth Serial (used for SerialReport)
 #define START_FRAME 0xABCD        // [-] Start frme definition for reliable serial communication
 #define UART_GND_PIN 16           //GND for UART on Serial 3 (pins 15, 14)
 
@@ -114,6 +114,9 @@ uint16_t t;
 uint16_t t100ms;
 uint16_t t10ms;
 
+int16_t TrqCmd = 0;
+int16_t SpdCmd = 0;
+
 int16_t acclrt_adc = 0;     //raw ADC-Value
 int16_t acclrt_adc_old = 0; //ADC-Value last cycle
 int16_t acclrt_adc_lastvalid = 0; //last valid ADC-Value
@@ -190,8 +193,12 @@ uint8_t RcRcvCh3NewData = 0;
 // Speed
 int16_t speedAvg_meas = 0;
 
+//SerialReport
+uint8_t SerialReportCounter = 0;
+
 // UART Communication
 uint16_t tMillisUART = 0;
+uint8_t UART_qlf = 0;   //0 = unplausible; 1 = plausible; 2 = timeout
 
 typedef struct {
   uint16_t start;
@@ -355,7 +362,11 @@ void SendCommand(int16_t SteerCommand, int16_t TrqCommand, int16_t nmaxCommand) 
   #endif
 }
 
-void Receive() {
+void SendCommandSafeState(){
+  SendCommand(0, 0, 1000);  //Steer + TrqCommand 0 and no nmax-Controll (nmax 1000)
+}
+
+void ReceiveUART() {
   // Check for new data availability in the Serial buffer
   if (Serial3.available()) {
     incomingByte = Serial3.read();                                       // Read the incoming byte
@@ -393,6 +404,7 @@ void Receive() {
       memcpy(&Feedback, &NewFeedback, sizeof(SerialFeedback));
       
       tMillisUART = (uint16_t)millis();
+      UART_qlf = 1;
 
       // Print data to built-in Serial
       // Serial.print("cS:");
@@ -403,14 +415,16 @@ void Receive() {
       // Serial.print(Feedback.speedR_meas);
       // Serial.print(",sL:");
       // Serial.print(Feedback.speedL_meas);
-      Serial.print(",Ub:");
-      Serial.print(Feedback.batVoltage);
-      Serial.print(",Tb:");
-      Serial.print(Feedback.boardTemp);
-      Serial.print(",Idc:");
-      Serial.println(Feedback.dc_curr);
+      // Serial.print(",Ub:");
+      // Serial.print(Feedback.batVoltage);
+      // Serial.print(",Tb:");
+      // Serial.print(Feedback.boardTemp);
+      // Serial.print(",Idc:");
+      // Serial.println(Feedback.dc_curr);
     } else {
-      Serial.println("CRC");
+      //Serial.println("CRC");
+      tMillisUART = (uint16_t)millis();
+      UART_qlf = 0;
     }
     idx = 0;  // Reset the index (it prevents to enter in this if condition in the next cycle)
   }
@@ -891,6 +905,20 @@ void ReceiveUARTPlaus() {
   {
     tMillisUART = (uint16_t)millis() - UART_TIMEOUT - 1;  //pull tMillisUART behind actual millis to avoid overflow/runover-effects
 
+    UART_qlf = 2;
+
+    //Set UART Feedback to 0
+    speedAvg_meas = 0;
+    Feedback.cmd1 = 0;
+    Feedback.cmd2 = 0;
+    Feedback.speedR_meas = 0;
+    Feedback.speedL_meas = 0;
+    Feedback.batVoltage = 0;
+    Feedback.boardTemp = 0;
+    Feedback.dc_curr = 0;
+  }
+  else if (UART_qlf == 0) //invalid CRC
+  {
     //Set UART Feedback to 0
     speedAvg_meas = 0;
     Feedback.cmd1 = 0;
@@ -905,8 +933,34 @@ void ReceiveUARTPlaus() {
     speedAvg_meas = (Feedback.speedL_meas - Feedback.speedR_meas)/2;
 }
 
-void Task10ms() {
+void SerialReport(){
+  if (Serial.availableForWrite() >= 10)
+  {
+    switch(SerialReportCounter) {
+      case 0: Serial.print("a "); Serial.println(acclrt_qlf); SerialReportCounter++;  break;
+      case 1: Serial.print("b "); Serial.println(RcRcvCh1_qlf); SerialReportCounter++;  break;
+      case 2: Serial.print("c "); Serial.println(RcRcvCh2_qlf); SerialReportCounter++;  break;
+      case 3: Serial.print("d "); Serial.println(RcRcvCh3_qlf); SerialReportCounter++;  break;
+      case 4: Serial.print("e "); Serial.println(RcRcvCh4_qlf); SerialReportCounter++;  break;
+      case 5: Serial.print("f "); Serial.println(RcRcvCh5_qlf); SerialReportCounter++;  break;
+      case 6: Serial.print("g "); Serial.println(UART_qlf); SerialReportCounter++;  break;
+      case 7: Serial.print("h "); Serial.println(Feedback.batVoltage); SerialReportCounter++;  break;
+      case 8: Serial.print("i "); Serial.println(Feedback.dc_curr); SerialReportCounter++;  break;
+      case 9: Serial.print("j "); Serial.println(Feedback.boardTemp); SerialReportCounter++;  break;
+      case 10: Serial.print("k "); Serial.println(speedAvg_meas); SerialReportCounter++;  break;
+      case 11: Serial.print("l "); Serial.println(RcRcv_SpdCmd); SerialReportCounter++;  break;
+      case 12: Serial.print("m "); Serial.println(RcRcv_StrCmd); SerialReportCounter++;  break;
+      case 13: Serial.print("n "); Serial.println(RcRcv_CtrlMod); SerialReportCounter++;  break;
+      case 14: Serial.print("o "); Serial.println(acclrt_TrqCmd); SerialReportCounter++;  break;
+      case 15: Serial.print("p "); Serial.println(RcRcv_TrqCmd); SerialReportCounter++;  break;
+      case 16: Serial.print("q "); Serial.println(TrqCmd); SerialReportCounter++;  break;
+      case 17: Serial.print("r "); Serial.println(SpdCmd); SerialReportCounter++;  break;
+      default: SerialReportCounter = 0; break;
+    }
+  }
+}
 
+void Task10ms() {
   AcclrtReadPlaus();
   // Serial.print("adc:");  Serial.print(acclrt_adc);
   // Serial.print(",acQlf:");  Serial.print(acclrt_qlf);
@@ -934,26 +988,26 @@ void Task10ms() {
   //Serial.print(",Rc1Qlf:");  Serial.println(RcRcvCh1_qlf);
 
   ReceiveUARTPlaus();
-  Serial.print(",Savg:");  Serial.print(speedAvg_meas);
+  // Serial.print(",Savg:");  Serial.print(speedAvg_meas);
 
   //Check if all QLF ok
   if  (
       (RcRcvCh1_qlf == 1) 
       && (RcRcvCh2_qlf == 1) 
-      // && (RcRcvCh3_qlf == 1) 
+      && (RcRcvCh3_qlf == 1) 
       && (RcRcvCh4_qlf == 1) 
       && (RcRcvCh5_qlf == 1) 
       && (acclrt_qlf == 1)
       )
   {
     RcRcvEmergOff();
-    Serial.print(",EO:");  Serial.print(RcRcv_EmergOff);
-    Serial.print(",EOC:");  Serial.print(RcRcv_EmergOffCnt);
+    // Serial.print(",EO:");  Serial.print(RcRcv_EmergOff);
+    // Serial.print(",EOC:");  Serial.print(RcRcv_EmergOffCnt);
 
     //Emergency Off procedure
     if (RcRcv_EmergOff == 1)
     {
-      SendCommand(0, 0, 0);
+      SendCommandSafeState();
       if (RcRcv_EmergOffCnt > RCRCV_EMERGOFFCNT_RELAIS)
         digitalWrite(DCRELAIS_PIN, LOW);  //Turn Off/Open DC-Relais
     }
@@ -963,13 +1017,13 @@ void Task10ms() {
       digitalWrite(DCRELAIS_PIN, HIGH);  //Turn On/Close DC-Relais
 
       RcRcvSpdCmd();
-      Serial.print(",SC:");  Serial.print(RcRcv_SpdCmd);
+      // Serial.print(",SC:");  Serial.print(RcRcv_SpdCmd);
 
       RcRcvStrCmd();
-      Serial.print(",StC:");  Serial.print(RcRcv_StrCmd);
+      // Serial.print(",StC:");  Serial.print(RcRcv_StrCmd);
 
       RcRcvCtrlMod();
-      Serial.print(",CM:");  Serial.print(RcRcv_CtrlMod);
+      // Serial.print(",CM:");  Serial.print(RcRcv_CtrlMod);
 
       AcclrtTrqCmd();
       //Serial.print(",TA:");  Serial.print(acclrt_TrqCmd);
@@ -977,7 +1031,7 @@ void Task10ms() {
       RcRcvTrqCmd();
       // Serial.print(",TR:");  Serial.println(RcRcv_TrqCmd);
 
-      int16_t TrqCmd = 0;
+      TrqCmd = 0;
       //TrqRequest according to CtrlMod
       if (RcRcv_CtrlMod == RCRCV_CTRLMOD_RC)
         TrqCmd = RcRcv_TrqCmd;
@@ -986,10 +1040,10 @@ void Task10ms() {
       else if (RcRcv_CtrlMod == RCRCV_CTRLMOD_RCLIM)
         TrqCmd = min(acclrt_TrqCmd, RcRcv_TrqCmd);
 
-      Serial.print(",TC:");  Serial.println(TrqCmd);
+      // Serial.print(",TC:");  Serial.println(TrqCmd);
       
       // Speedcommand
-      int16_t SpdCmd = 0;
+      SpdCmd = 0;
       // reverse speedlim
       if (speedAvg_meas < -(SPDCMD_REVERSE - 20))
         SpdCmd = SPDCMD_REVERSE;
@@ -1002,16 +1056,18 @@ void Task10ms() {
   //at least one QLF not OK -> SAFE STATE and report QLF
   else
   {
-    SendCommand(0, 0, 0);
+    SendCommandSafeState();
 
-    Serial.print("R1:");  Serial.print(RcRcvCh1_qlf);
-    Serial.print(",R2:");  Serial.print(RcRcvCh2_qlf);
-    Serial.print(",R3:");  Serial.print(RcRcvCh3_qlf);
-    Serial.print(",R4:");  Serial.print(RcRcvCh4_qlf);
-    Serial.print(",R5:");  Serial.print(RcRcvCh5_qlf);
-    Serial.print(",A:");  Serial.println(acclrt_qlf);
+    // Serial.print("R1:");  Serial.print(RcRcvCh1_qlf);
+    // Serial.print(",R2:");  Serial.print(RcRcvCh2_qlf);
+    // Serial.print(",R3:");  Serial.print(RcRcvCh3_qlf);
+    // Serial.print(",R4:");  Serial.print(RcRcvCh4_qlf);
+    // Serial.print(",R5:");  Serial.print(RcRcvCh5_qlf);
+    // Serial.print(",A:");  Serial.println(acclrt_qlf);
   }
-    
+
+  //Send Heartbeat to communicate task was running
+  Serial.println("Z");
 }
 
 void loop(void) {
@@ -1030,6 +1086,8 @@ void loop(void) {
     //Task100ms();
   }
 
-  // Check for new received data from hoverboard uart
-  Receive();
+  SerialReport();
+
+  // Check for new received data from hoverboard uart -> Must stay in main-loop
+  ReceiveUART();
 }
