@@ -60,9 +60,9 @@
 #define RCRCV_STRCMD_MIN    -500        //Command @ RCRCV_CH1_TD_MIN
 
 //CH3 RC Pushbutton (Emergency off)
-#define RCRCV_CH3_TD_OFF 1260           //Push Button Off Duty-Time in micros
-#define RCRCV_CH3_TD_ON 1752             //Push Button On Duty-Time in micros
-#define RCRCV_CH3_TD_RCOFF 870         //RC turned Off Duty-Time in micros
+#define RCRCV_CH3_TD_OFF 1290           //Push Button Off Duty-Time in micros
+#define RCRCV_CH3_TD_ON 1680             //Push Button On Duty-Time in micros
+//#define RCRCV_CH3_TD_RCOFF 870         //RC turned Off Duty-Time in micros
 #define RCRCV_CH3_TD_TOLERANCE 100        //Tolerance for each State Duty-Time in micros
 #define RCRCV_CH3_TD_MAX_DIAG  RCRCV_CH2_TD_MAX_DIAG     //Max Duty-Time in micros plausible
 #define RCRCV_CH3_TD_MIN_DIAG  RCRCV_CH2_TD_MIN_DIAG      //Min Duty-Time in micros plausible
@@ -265,7 +265,7 @@ void setup() {
 
   // PINS DC-Relais
   pinMode(DCRELAIS_PIN, OUTPUT);
-  digitalWrite(DCRELAIS_PIN, LOW);
+  digitalWrite(DCRELAIS_PIN, HIGH);   //HIGH = Relais not actuated
 
   //Initialize
   t = millis();
@@ -877,25 +877,28 @@ void RcRcvCtrlMod() {
 
 void RcRcvEmergOff() {
   if (RcRcvCh3_qlf == 0) {
-    RcRcv_EmergOff = 0;   //No Emergency Off when Qlf not valid
+    RcRcv_EmergOff = 1;   //Emergency Off when Qlf not valid
+    if (RcRcv_EmergOffCnt < 255)
+      RcRcv_EmergOffCnt++;  
   } else {
-    //Pushbutton off -> normal operation
+    //Pushbutton off -> Emergency Off
     if ((RcRcvCh3_TDuty >= (RCRCV_CH3_TD_OFF - RCRCV_CH3_TD_TOLERANCE)) && (RcRcvCh3_TDuty <= (RCRCV_CH3_TD_OFF + RCRCV_CH3_TD_TOLERANCE)))
-    {
-      RcRcv_EmergOff = 0;
-      RcRcv_EmergOffCnt = 0;
-    }
-    //Pushbutton on -> Emergency Off
-    if ((RcRcvCh3_TDuty >= (RCRCV_CH3_TD_ON - RCRCV_CH3_TD_TOLERANCE)) && (RcRcvCh3_TDuty <= (RCRCV_CH3_TD_ON + RCRCV_CH3_TD_TOLERANCE)))
     {
       RcRcv_EmergOff = 1;
       if (RcRcv_EmergOffCnt < 255)
-        RcRcv_EmergOffCnt++;
+        RcRcv_EmergOffCnt++;      
     }
-    else 
+    //Pushbutton on -> normal operation
+    else if ((RcRcvCh3_TDuty >= (RCRCV_CH3_TD_ON - RCRCV_CH3_TD_TOLERANCE)) && (RcRcvCh3_TDuty <= (RCRCV_CH3_TD_ON + RCRCV_CH3_TD_TOLERANCE)))
     {
       RcRcv_EmergOff = 0;
       RcRcv_EmergOffCnt = 0;
+    }
+    else 
+    {
+      RcRcv_EmergOff = 1;
+      if (RcRcv_EmergOffCnt < 255)
+        RcRcv_EmergOffCnt++;  
     }
   }
 }
@@ -1009,12 +1012,12 @@ void Task10ms() {
     {
       SendCommandSafeState();
       if (RcRcv_EmergOffCnt > RCRCV_EMERGOFFCNT_RELAIS)
-        digitalWrite(DCRELAIS_PIN, LOW);  //Turn Off/Open DC-Relais
+        digitalWrite(DCRELAIS_PIN, HIGH);  //Turn Off/Open DC-Relais
     }
     //No Emergency Off
     else 
     {
-      digitalWrite(DCRELAIS_PIN, HIGH);  //Turn On/Close DC-Relais
+      digitalWrite(DCRELAIS_PIN, LOW);  //Turn On/Close DC-Relais
 
       RcRcvSpdCmd();
       // Serial.print(",SC:");  Serial.print(RcRcv_SpdCmd);
