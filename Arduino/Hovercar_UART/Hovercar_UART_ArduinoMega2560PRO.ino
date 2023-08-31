@@ -34,9 +34,9 @@
 #define DCRELAIS_PIN 8          //Digital out controlling DC-Relais
 
 //CH2 RC Throttle (RcRcv_TrqCmd)
-#define RCRCV_CH2_TD_MIN  900           //Min Duty-Time in micros 
+#define RCRCV_CH2_TD_MIN  1000           //Min Duty-Time in micros 
 #define RCRCV_CH2_TD_ZERO 1500          //Middle/Zero/RC-Off Duty-Time in micros
-#define RCRCV_CH2_TD_MAX  2100          //Max Duty-Time in micros
+#define RCRCV_CH2_TD_MAX  2000          //Max Duty-Time in micros
 #define RCRCV_CH2_TD_DEADBAND 40        //Deadband Duty-Time around TD_ZERO in micros
 #define RCRCV_CH2_TD_MAX_DIAG  2200     //Max Duty-Time in micros plausible
 #define RCRCV_CH2_TD_MIN_DIAG  800      //Min Duty-Time in micros plausible 
@@ -48,10 +48,10 @@
 #define RCRCV_TRQCMD_MIN    -500        //Command @ RCRCV_CH2_TD_MIN
 
 //CH1 RC Steering
-#define RCRCV_CH1_TD_MIN  1100           //Min Duty-Time in micros
+#define RCRCV_CH1_TD_MIN  1000           //Min Duty-Time in micros
 #define RCRCV_CH1_TD_ZERO 1500          //Middle/Zero/RC-Off Duty-Time in micros
-#define RCRCV_CH1_TD_MAX  1900          //Max Duty-Time in micros
-#define RCRCV_CH1_TD_DEADBAND 50        //Deadband Duty-Time around TD_ZERO in micros
+#define RCRCV_CH1_TD_MAX  2000          //Max Duty-Time in micros
+#define RCRCV_CH1_TD_DEADBAND 200        //Deadband Duty-Time around TD_ZERO in micros
 #define RCRCV_CH1_TD_MAX_DIAG  RCRCV_CH2_TD_MAX_DIAG     //Max Duty-Time in micros plausible
 #define RCRCV_CH1_TD_MIN_DIAG  RCRCV_CH2_TD_MIN_DIAG      //Min Duty-Time in micros plausible
 #define RCRCV_CH1_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
@@ -63,8 +63,8 @@
 
 //CH3 RC Pushbutton (Emergency off)
 #define RCRCV_CH3_TD_OFF 1290           //Push Button Off Duty-Time in micros
-#define RCRCV_CH3_TD_ON 1680             //Push Button On Duty-Time in micros
-//#define RCRCV_CH3_TD_RCOFF 870         //RC turned Off Duty-Time in micros
+#define RCRCV_CH3_TD_ON 1670             //Push Button On Duty-Time in micros
+//#define RCRCV_CH3_TD_RCOFF 1290         //RC turned Off Duty-Time in micros
 #define RCRCV_CH3_TD_TOLERANCE 100        //Tolerance for each State Duty-Time in micros
 #define RCRCV_CH3_TD_MAX_DIAG  RCRCV_CH2_TD_MAX_DIAG     //Max Duty-Time in micros plausible
 #define RCRCV_CH3_TD_MIN_DIAG  RCRCV_CH2_TD_MIN_DIAG      //Min Duty-Time in micros plausible
@@ -74,10 +74,10 @@
 
 //CH4 RC 3-Way-Switch
 #define RCRCV_CH4_TD_LEFT 1260           //3-Way-Switch left Duty-Time in micros
-#define RCRCV_CH4_TD_MID 1510             //3-Way-Switch middle Duty-Time in micros
-#define RCRCV_CH4_TD_RIGHT 1752            //3-Way-Switch right Duty-Time in micros
+#define RCRCV_CH4_TD_MID 1470             //3-Way-Switch middle Duty-Time in micros
+#define RCRCV_CH4_TD_RIGHT 1652            //3-Way-Switch right Duty-Time in micros
 #define RCRCV_CH4_TD_RCOFF 870         //RC turned Off Duty-Time in micros
-#define RCRCV_CH4_TD_TOLERANCE 100        //Tolerance for each State Duty-Time in micros
+#define RCRCV_CH4_TD_TOLERANCE 80        //Tolerance for each State Duty-Time in micros
 #define RCRCV_CH4_TD_MAX_DIAG  RCRCV_CH2_TD_MAX_DIAG     //Max Duty-Time in micros plausible
 #define RCRCV_CH4_TD_MIN_DIAG  RCRCV_CH2_TD_MIN_DIAG      //Min Duty-Time in micros plausible
 #define RCRCV_CH4_TIMEOUT     RCRCV_CH2_TIMEOUT        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
@@ -88,8 +88,8 @@
 #define RCRCV_CTRLMOD_SAFE  RCRCV_CTRLMOD_RCLIM           //CTRL_MODE to take for safe state
 
 //CH5 RC Drehknopf  (RcRcv_SpdCmd)
-#define RCRCV_CH5_TD_MIN  890           //Min Duty-Time in micros
-#define RCRCV_CH5_TD_MAX  2100          //Max Duty-Time in micros
+#define RCRCV_CH5_TD_MIN  1000           //Min Duty-Time in micros
+#define RCRCV_CH5_TD_MAX  1900          //Max Duty-Time in micros
 #define RCRCV_CH5_TD_MAX_DIAG  RCRCV_CH2_TD_MAX_DIAG     //Max Duty-Time in micros plausible
 #define RCRCV_CH5_TD_MIN_DIAG  RCRCV_CH2_TD_MIN_DIAG      //Min Duty-Time in micros plausible
 #define RCRCV_CH5_TIMEOUT     RCRCV_CH2_TIMEOUT        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
@@ -1076,6 +1076,7 @@ void Task10ms() {
 
   //Send Heartbeat to communicate task was running
   Serial2.println("Z");
+  Serial.println("Z");
 }
 
 void loop(void) {
