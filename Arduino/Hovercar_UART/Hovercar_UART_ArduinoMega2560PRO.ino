@@ -57,9 +57,9 @@
 #define RCRCV_CH1_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
 #define RCRCV_CH1_TIMEOUT     RCRCV_CH2_TIMEOUT        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
 #define RCRCV_CH1_ERRCNTMAX   RCRCV_CH2_ERRCNTMAX          //max number of Error-Counter bevore Qlf is set to invalid
-#define RCRCV_STRCMD_MAX    500         //Command @ RCRCV_CH1_TD_MAX
+#define RCRCV_STRCMD_MAX    1         //Command @ RCRCV_CH1_TD_MAX (z.B. 500)
 #define RCRCV_STRCMD_ZERO   0           //Command @ RCRCV_CH1_TD_ZERO +- RCRCV_CH1_TD_DEADBAND
-#define RCRCV_STRCMD_MIN    -500        //Command @ RCRCV_CH1_TD_MIN
+#define RCRCV_STRCMD_MIN    -1        //Command @ RCRCV_CH1_TD_MIN (z.B. - 500)
 
 //CH3 RC Pushbutton (Emergency off)
 #define RCRCV_CH3_TD_OFF 1290           //Push Button Off Duty-Time in micros
