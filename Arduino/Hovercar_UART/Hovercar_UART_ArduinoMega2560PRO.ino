@@ -1081,11 +1081,11 @@ void Task10ms() {
     SendCommandSafeState();
 
     // if RC Qlf not OK open Relais
-    if (RcRcvCh1_qlf != 1) 
+    if ((RcRcvCh1_qlf != 1) 
       || (RcRcvCh2_qlf != 1) 
       || (RcRcvCh3_qlf != 1) 
       || (RcRcvCh4_qlf != 1) 
-      || (RcRcvCh5_qlf != 1)
+      || (RcRcvCh5_qlf != 1))
       digitalWrite(DCRELAIS_PIN, HIGH);  //Turn Off/Open DC-Relais
   }
 
