@@ -17,7 +17,7 @@
 #define ACCLRT_ADC_MAX_DIAG 870  //MIN-Threshold of ADC for Diagnosis
 #define ACCLRT_ADC_GRD_DIAG 300   //MAX-Absolute change of ADC over 1 Cycle for Diagnosis
 #define ACCLRT_ERRCNTMAX   5          //max number of Error-Counter bevore Qlf is set to invalid
-#define ACCLRT_TRQCMD_MAX 500   //Command @ ADC_MAX (Max = 1000)
+#define ACCLRT_TRQCMD_MAX 600   //Command @ ADC_MAX (Max = 1000)
 #define ACCLRT_TRQCMD_MIN 0    //Command @ ADC_MIN
 
 //RC Receiver PINS
@@ -45,7 +45,7 @@
 #define RCRCV_CH2_ERRCNTMAX   5          //max number of Error-Counter bevore Qlf is set to invalid
 #define RCRCV_TRQCMD_MAX    1000        //Command @ RCRCV_CH2_TD_MAX (Max = 1000)
 #define RCRCV_TRQCMD_ZERO   0           //Command @ RCRCV_CH2_TD_ZERO +- RCRCV_CH2_TD_DEADBAND
-#define RCRCV_TRQCMD_MIN    -500        //Command @ RCRCV_CH2_TD_MIN
+#define RCRCV_TRQCMD_MIN    -700        //Command @ RCRCV_CH2_TD_MIN
 
 //CH1 RC Steering
 #define RCRCV_CH1_TD_MIN  1000           //Min Duty-Time in micros
@@ -95,9 +95,9 @@
 #define RCRCV_CH5_TIMEOUT     RCRCV_CH2_TIMEOUT        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
 #define RCRCV_CH5_ERRCNTMAX   RCRCV_CH2_ERRCNTMAX          //max number of Error-Counter bevore Qlf is set to invalid
 #define RCRCV_CH5_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
-#define RCRCV_SPDCMD_MIN    0       //Command @ RCRCV_CH5_TD_MIN
+#define RCRCV_SPDCMD_MIN    30       //Command @ RCRCV_CH5_TD_MIN
 #define RCRCV_SPDCMD_MAX    650    //Command @ RCRCV_CH5_TD_MAX
-#define SPDCMD_REVERSE      50     //Speedlimit when driving reverse
+#define SPDCMD_REVERSE      100     //Speedlimit when driving reverse
 
 //UART
 #define UART_TIMEOUT      60      //Timeout for last valid UART Receive in millis
