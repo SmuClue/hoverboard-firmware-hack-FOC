@@ -97,7 +97,7 @@
 #define RCRCV_CH5_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
 #define RCRCV_SPDCMD_MIN    0       //Command @ RCRCV_CH5_TD_MIN
 #define RCRCV_SPDCMD_MAX    650    //Command @ RCRCV_CH5_TD_MAX
-#define SPDCMD_REVERSE      100     //Speedlimit when driving reverse
+#define SPDCMD_REVERSE      50     //Speedlimit when driving reverse
 
 //UART
 #define UART_TIMEOUT      60      //Timeout for last valid UART Receive in millis
