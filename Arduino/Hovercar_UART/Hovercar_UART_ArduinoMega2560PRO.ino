@@ -43,7 +43,7 @@
 #define RCRCV_CH2_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
 #define RCRCV_CH2_TIMEOUT     60        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
 #define RCRCV_CH2_ERRCNTMAX   5          //max number of Error-Counter bevore Qlf is set to invalid
-#define RCRCV_TRQCMD_MAX    500        //Command @ RCRCV_CH2_TD_MAX (Max = 1000)
+#define RCRCV_TRQCMD_MAX    1000        //Command @ RCRCV_CH2_TD_MAX (Max = 1000)
 #define RCRCV_TRQCMD_ZERO   0           //Command @ RCRCV_CH2_TD_ZERO +- RCRCV_CH2_TD_DEADBAND
 #define RCRCV_TRQCMD_MIN    -500        //Command @ RCRCV_CH2_TD_MIN
 
