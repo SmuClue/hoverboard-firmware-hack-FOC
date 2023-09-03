@@ -36,7 +36,7 @@
 //CH2 RC Throttle (RcRcv_TrqCmd)
 #define RCRCV_CH2_TD_MIN  1000           //Min Duty-Time in micros 
 #define RCRCV_CH2_TD_ZERO 1500          //Middle/Zero/RC-Off Duty-Time in micros
-#define RCRCV_CH2_TD_MAX  2000          //Max Duty-Time in micros
+#define RCRCV_CH2_TD_MAX  1900          //Max Duty-Time in micros
 #define RCRCV_CH2_TD_DEADBAND 40        //Deadband Duty-Time around TD_ZERO in micros
 #define RCRCV_CH2_TD_MAX_DIAG  2200     //Max Duty-Time in micros plausible
 #define RCRCV_CH2_TD_MIN_DIAG  800      //Min Duty-Time in micros plausible 
@@ -118,6 +118,8 @@ uint16_t t10ms;
 
 int16_t TrqCmd = 0;
 int16_t SpdCmd = 0;
+
+uint8_t Fahrfreigabe = 0;
 
 int16_t acclrt_adc = 0;     //raw ADC-Value
 int16_t acclrt_adc_old = 0; //ADC-Value last cycle
@@ -1057,13 +1059,24 @@ void Task10ms() {
         SpdCmd = SPDCMD_REVERSE;
       else
         SpdCmd = RcRcv_SpdCmd;
-
-      SendCommand(RcRcv_StrCmd, TrqCmd, SpdCmd);
+      
+      //Fahrfreigabe only when Trq-Request = 0
+      if ((UART_qlf==1) && (abs(TrqCmd) < 5))
+        Fahrfreigabe = 1;
+      else if (UART_qlf!=1)
+        Fahrfreigabe = 0;
+      
+      // Send Trq/Speed/Steer-Command only if Fahrfreigabe==1
+      if (Fahrfreigabe == 1)
+        SendCommand(RcRcv_StrCmd, TrqCmd, SpdCmd);
+      else
+        SendCommandSafeState();
     }
   }
-  //at least one QLF not OK -> SAFE STATE and report QLF
+  //at least one QLF not OK -> SAFE STATE, Fahrfreigabe = 0 and report QLF
   else
   {
+    Fahrfreigabe = 0;
     SendCommandSafeState();
 
     // Serial.print("R1:");  Serial.print(RcRcvCh1_qlf);
