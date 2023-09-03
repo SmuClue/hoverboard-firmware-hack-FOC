@@ -1080,12 +1080,13 @@ void Task10ms() {
     Fahrfreigabe = 0;
     SendCommandSafeState();
 
-    // Serial.print("R1:");  Serial.print(RcRcvCh1_qlf);
-    // Serial.print(",R2:");  Serial.print(RcRcvCh2_qlf);
-    // Serial.print(",R3:");  Serial.print(RcRcvCh3_qlf);
-    // Serial.print(",R4:");  Serial.print(RcRcvCh4_qlf);
-    // Serial.print(",R5:");  Serial.print(RcRcvCh5_qlf);
-    // Serial.print(",A:");  Serial.println(acclrt_qlf);
+    // if RC Qlf not OK open Relais
+    if (RcRcvCh1_qlf != 1) 
+      || (RcRcvCh2_qlf != 1) 
+      || (RcRcvCh3_qlf != 1) 
+      || (RcRcvCh4_qlf != 1) 
+      || (RcRcvCh5_qlf != 1)
+      digitalWrite(DCRELAIS_PIN, HIGH);  //Turn Off/Open DC-Relais
   }
 
   //Send Heartbeat to communicate task was running
