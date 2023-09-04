@@ -25,8 +25,8 @@
 #define RCRCV_GND_PIN 30         //GND Supply RC-Receiver
 #define RCRCV_CH2_PIN 20         //PWM In for RC-Receiver CH2 (Throttle)
 #define RCRCV_CH1_PIN 21         //PWM In for RC-Receiver CH1 (Steering)
-#define RCRCV_CH5_PIN 2         //PWM In for RC-Receiver CH5 (Drehknopf)
-#define RCRCV_CH6_PIN 3         //PWM In for RC-Receiver CH6 (Drehknopf)
+#define RCRCV_CH6_PIN 2         //PWM In for RC-Receiver CH5 (Drehknopf)
+#define RCRCV_CH5_PIN 3         //PWM In for RC-Receiver CH6 (Drehknopf)
 #define RCRCV_CH4_PIN 18         //PWM In for RC-Receiver CH4 (3-Way-Switch)
 #define RCRCV_CH3_PIN 19        //PWM In for RC-Receiver CH4 (3-Way-Switch)
 
