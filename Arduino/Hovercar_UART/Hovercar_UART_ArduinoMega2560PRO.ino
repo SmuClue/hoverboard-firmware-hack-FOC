@@ -966,8 +966,8 @@ void SerialReport(){
       case 16: Serial2.print("q "); Serial2.println(TrqCmd); SerialReportCounter++;  break;
       case 17: Serial2.print("r "); Serial2.println(SpdCmd); SerialReportCounter++;  break;
       case 18: Serial2.print("s "); Serial2.println(Fahrfreigabe); SerialReportCounter++;  break;
-      case 18: Serial2.print("t "); Serial2.println(Feedback.pwml); SerialReportCounter++;  break;
-      case 18: Serial2.print("u "); Serial2.println(Feedback.pwmr); SerialReportCounter++;  break;
+      case 19: Serial2.print("t "); Serial2.println(Feedback.pwml); SerialReportCounter++;  break;
+      case 20: Serial2.print("u "); Serial2.println(Feedback.pwmr); SerialReportCounter++;  break;
       default: SerialReportCounter = 0; break;
     }
   }
