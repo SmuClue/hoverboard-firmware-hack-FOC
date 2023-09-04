@@ -215,8 +215,8 @@ SerialCommand Command;
 
 typedef struct {
   uint16_t start;
-  int16_t cmd1;
-  int16_t cmd2;
+  int16_t pwml;
+  int16_t pwmr;
   int16_t speedR_meas;
   int16_t speedL_meas;
   int16_t batVoltage;   //*10
