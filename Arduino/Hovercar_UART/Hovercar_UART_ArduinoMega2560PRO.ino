@@ -402,7 +402,7 @@ void ReceiveUART() {
   // Check if we reached the end of the package
   if (idx == sizeof(SerialFeedback)) {
     uint16_t checksum;
-    checksum = (uint16_t)(NewFeedback.start ^ NewFeedback.cmd1 ^ NewFeedback.cmd2 ^ NewFeedback.speedR_meas ^ NewFeedback.speedL_meas
+    checksum = (uint16_t)(NewFeedback.start ^ NewFeedback.pwml ^ NewFeedback.pwmr ^ NewFeedback.speedR_meas ^ NewFeedback.speedL_meas
                           ^ NewFeedback.batVoltage ^ NewFeedback.boardTemp ^ NewFeedback.dc_curr);
 
     // Check validity of the new data
@@ -415,9 +415,9 @@ void ReceiveUART() {
 
       // Print data to built-in Serial
       // Serial.print("cS:");
-      // Serial.print(Feedback.cmd1);
+      // Serial.print(Feedback.pwml);
       // Serial.print(",cT:");
-      // Serial.print(Feedback.cmd2);
+      // Serial.print(Feedback.pwmr);
       // Serial.print(",sR:");
       // Serial.print(Feedback.speedR_meas);
       // Serial.print(",sL:");
@@ -919,8 +919,8 @@ void ReceiveUARTPlaus() {
 
     //Set UART Feedback to 0
     speedAvg_meas = 0;
-    Feedback.cmd1 = 0;
-    Feedback.cmd2 = 0;
+    Feedback.pwml = 0;
+    Feedback.pwmr = 0;
     Feedback.speedR_meas = 0;
     Feedback.speedL_meas = 0;
     Feedback.batVoltage = 0;
@@ -931,8 +931,8 @@ void ReceiveUARTPlaus() {
   {
     //Set UART Feedback to 0
     speedAvg_meas = 0;
-    Feedback.cmd1 = 0;
-    Feedback.cmd2 = 0;
+    Feedback.pwml = 0;
+    Feedback.pwmr = 0;
     Feedback.speedR_meas = 0;
     Feedback.speedL_meas = 0;
     Feedback.batVoltage = 0;
@@ -966,8 +966,8 @@ void SerialReport(){
       case 16: Serial2.print("q "); Serial2.println(TrqCmd); SerialReportCounter++;  break;
       case 17: Serial2.print("r "); Serial2.println(SpdCmd); SerialReportCounter++;  break;
       case 18: Serial2.print("s "); Serial2.println(Fahrfreigabe); SerialReportCounter++;  break;
-      case 18: Serial2.print("t "); Serial2.println(Feedback.cmd1); SerialReportCounter++;  break;
-      case 18: Serial2.print("u "); Serial2.println(Feedback.cmd2); SerialReportCounter++;  break;
+      case 18: Serial2.print("t "); Serial2.println(Feedback.pwml); SerialReportCounter++;  break;
+      case 18: Serial2.print("u "); Serial2.println(Feedback.pwmr); SerialReportCounter++;  break;
       default: SerialReportCounter = 0; break;
     }
   }

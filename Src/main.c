@@ -513,8 +513,8 @@ int main(void) {
     #if defined(FEEDBACK_SERIAL_USART2) || defined(FEEDBACK_SERIAL_USART3)
       if (main_loop_counter % 2 == 0) {    // Send data periodically every 10 ms
         Feedback.start	        = (uint16_t)SERIAL_START_FRAME;
-        Feedback.pwml           = (int16_t)pwml;
-        Feedback.pwmr           = (int16_t)pwmr;
+        Feedback.cmd1           = (int16_t)pwml;
+        Feedback.cmd2           = (int16_t)pwmr;
         Feedback.speedR_meas	  = (int16_t)rtY_Right.n_mot;
         Feedback.speedL_meas	  = (int16_t)rtY_Left.n_mot;
         Feedback.batVoltage	    = (int16_t)batVoltageCalibUnfilt;
