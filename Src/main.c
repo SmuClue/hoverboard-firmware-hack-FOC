@@ -106,6 +106,7 @@ uint8_t backwardDrive;
 extern volatile uint32_t buzzerTimer;
 volatile uint32_t main_loop_counter;
 int16_t batVoltageCalib;         // global variable for calibrated battery voltage
+int16_t batVoltageCalibUnfilt;   // global variable for unfiltered calibrated battery voltage
 int16_t board_temp_deg_c;        // global variable for calibrated temperature in degrees Celsius
 int16_t left_dc_curr;            // global variable for Left DC Link current 
 int16_t right_dc_curr;           // global variable for Right DC Link current
@@ -482,6 +483,7 @@ int main(void) {
 
     // ####### CALC CALIBRATED BATTERY VOLTAGE #######
     batVoltageCalib = batVoltage * BAT_CALIB_REAL_VOLTAGE / BAT_CALIB_ADC;
+    batVoltageCalibUnfilt = (int16_t)(adc_buffer.batt1) * BAT_CALIB_REAL_VOLTAGE / BAT_CALIB_ADC;
 
     // ####### CALC DC LINK CURRENT #######
     left_dc_curr  = -(rtU_Left.i_DCLink * 100) / A2BIT_CONV;   // Left DC Link Current * 100 
@@ -515,7 +517,7 @@ int main(void) {
         Feedback.cmd2           = (int16_t)input2[inIdx].cmd;
         Feedback.speedR_meas	  = (int16_t)rtY_Right.n_mot;
         Feedback.speedL_meas	  = (int16_t)rtY_Left.n_mot;
-        Feedback.batVoltage	    = (int16_t)batVoltageCalib;
+        Feedback.batVoltage	    = (int16_t)batVoltageCalibUnfilt;
         Feedback.boardTemp	    = (int16_t)board_temp_deg_c;
         Feedback.dc_curr        = (int16_t)dc_curr;
 
