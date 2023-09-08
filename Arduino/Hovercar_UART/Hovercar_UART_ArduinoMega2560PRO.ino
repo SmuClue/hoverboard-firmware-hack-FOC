@@ -32,6 +32,7 @@
 
 //DC-Relais PINS
 #define DCRELAIS_PIN 8          //Digital out controlling DC-Relais
+#define DCRELAIS_SUPPLY_PIN 9   //DC VCC 5V (not Supply for Relais "VCC-JD")
 
 //CH2 RC Throttle (RcRcv_TrqCmd)
 #define RCRCV_CH2_TD_MIN  1000           //Min Duty-Time in micros 
@@ -270,6 +271,8 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(RCRCV_CH3_PIN), IsrRcRcvCh3, CHANGE);
 
   // PINS DC-Relais
+  pinMode(DCRELAIS_SUPPLY_PIN, OUTPUT);
+  digitalWrite(DCRELAIS_SUPPLY_PIN, HIGH);
   pinMode(DCRELAIS_PIN, OUTPUT);
   digitalWrite(DCRELAIS_PIN, HIGH);   //HIGH = Relais not actuated
 
