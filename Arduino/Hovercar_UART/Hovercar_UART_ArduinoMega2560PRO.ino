@@ -3,7 +3,7 @@
 // UART
 #define HOVER_SERIAL_BAUD 115200  // [-] Baud rate for Serial3 (used to communicate with the hoverboard)
 #define SERIAL_BAUD 115200        // [-] Baud rate for USB Serial
-#define BT_SERIAL_BAUD 38400        // [-] Baud rate Bluetooth Serial2 (used for SerialReport)
+#define BT_SERIAL_BAUD 9600        // [-] Baud rate Bluetooth Serial2 (used for SerialReport)
 #define START_FRAME 0xABCD        // [-] Start frme definition for reliable serial communication
 #define UART_GND_PIN 12           //GND for UART on Serial 3 (pins 15, 14)
 
@@ -13,8 +13,8 @@
 #define ACCLRT_GND_PIN A4        //GND Supply for Accelerator
 #define ACCLRT_ADC_MIN 210       //MIN-Value of ADC over wich TrqRequest starts
 #define ACCLRT_ADC_MIN_DIAG 170  //MIN-Threshold of ADC for Diagnosis
-#define ACCLRT_ADC_MAX 810       //MIN-Value of ADC over wich TrqRequest starts
-#define ACCLRT_ADC_MAX_DIAG 870  //MIN-Threshold of ADC for Diagnosis
+#define ACCLRT_ADC_MAX 820       //MIN-Value of ADC over wich TrqRequest starts
+#define ACCLRT_ADC_MAX_DIAG 890  //MIN-Threshold of ADC for Diagnosis
 #define ACCLRT_ADC_GRD_DIAG 300   //MAX-Absolute change of ADC over 1 Cycle for Diagnosis
 #define ACCLRT_ERRCNTMAX   5          //max number of Error-Counter bevore Qlf is set to invalid
 #define ACCLRT_TRQCMD_MAX 600   //Command @ ADC_MAX (Max = 1000)
@@ -31,8 +31,8 @@
 #define RCRCV_CH3_PIN 19        //PWM In for RC-Receiver CH4 (3-Way-Switch)
 
 //DC-Relais PINS
-#define DCRELAIS_PIN 8          //Digital out controlling DC-Relais
-#define DCRELAIS_SUPPLY_PIN 9   //DC VCC 5V (not Supply for Relais "VCC-JD")
+#define DCRELAIS_PIN 9          //Digital out controlling DC-Relais
+#define DCRELAIS_SUPPLY_PIN 8   //DC VCC 5V (not Supply for Relais "VCC-JD")
 
 //CH2 RC Throttle (RcRcv_TrqCmd)
 #define RCRCV_CH2_TD_MIN  1000           //Min Duty-Time in micros 
