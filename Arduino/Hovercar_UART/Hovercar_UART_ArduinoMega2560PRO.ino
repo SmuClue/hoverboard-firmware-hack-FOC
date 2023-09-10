@@ -3,7 +3,7 @@
 // UART
 #define HOVER_SERIAL_BAUD 115200  // [-] Baud rate for Serial3 (used to communicate with the hoverboard)
 #define SERIAL_BAUD 115200        // [-] Baud rate for USB Serial
-#define BT_SERIAL_BAUD 9600        // [-] Baud rate Bluetooth Serial2 (used for SerialReport)
+#define BT_SERIAL_BAUD 38400        // [-] Baud rate Bluetooth Serial2 (used for SerialReport)
 #define START_FRAME 0xABCD        // [-] Start frme definition for reliable serial communication
 #define UART_GND_PIN 12           //GND for UART on Serial 3 (pins 15, 14)
 
