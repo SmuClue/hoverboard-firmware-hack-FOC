@@ -9,11 +9,13 @@
 
 // ########################## DEFINES ##########################
 // UART
-#define HOVER_SERIAL_BAUD 115200  // [-] Baud rate for Serial3 (used to communicate with the hoverboard)
+#define HOVER_SERIAL_BAUD 115200  // [-] Baud rate for Serial1 (used to communicate with the hoverboard)
+#define HOVER_SERIAL_RX_PIN 5      //
+#define HOVER_SERIAL_TX_PIN 17      //
 #define SERIAL_BAUD 115200        // [-] Baud rate for USB Serial
 //#define BT_SERIAL_BAUD 9600        // [-] Baud rate Bluetooth Serial2 (used for SerialReport)
 #define START_FRAME 0xABCD        // [-] Start frme definition for reliable serial communication
-#define UART_GND_PIN 12           //GND for UART on Serial 3 (pins 15, 14)
+//#define UART_GND_PIN            //GND for UART on Serial 3 (pins 15, 14) use GND-Port
 
 // Accelerator ADC
 #define ACCLRT_SUPPLY_PIN 21     //3.3V Supply for Accelerator
@@ -237,6 +239,10 @@ BluetoothSerial SerialBT;
 
 void TaskPrioHigh_10ms(void *pvParameters);
 void TaskPrioLow_10ms(void *pvParameters);
+void TaskPrioHigh_1ms(void *pvParameters);
+
+UBaseType_t uxHighWaterMark_TaskPrioHigh_10ms;
+UBaseType_t uxHighWaterMark_TaskPrioLow_10ms;
 
 // ########################## SETUP ##########################
 void setup() {
@@ -246,11 +252,7 @@ void setup() {
 
   SerialBT.begin("HovercarBT");
 
-  Serial1.begin(HOVER_SERIAL_BAUD, SERIAL_8N1, 5, 17);  //RX Pin 5; TX Pin 17
-
-  // PIN UART
-  pinMode(UART_GND_PIN, OUTPUT);
-  digitalWrite(UART_GND_PIN, LOW);  //GND-Supply
+  Serial1.begin(HOVER_SERIAL_BAUD, SERIAL_8N1, HOVER_SERIAL_RX_PIN, HOVER_SERIAL_TX_PIN);
 
   //PINS ACCLRT
   pinMode(ACCLRT_SENS_PIN,INPUT_PULLDOWN);
@@ -289,7 +291,7 @@ void setup() {
   xTaskCreatePinnedToCore(
     TaskPrioHigh_10ms
     ,  "TaskPrioHigh_10ms"   // A name just for humans
-    ,  4096  // This stack size can be checked & adjusted by reading the Stack Highwater
+    ,  2048  // This stack size can be checked & adjusted by reading the Stack Highwater
     ,  NULL
     ,  2  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
     ,  NULL 
@@ -299,6 +301,15 @@ void setup() {
     TaskPrioLow_10ms
     ,  "TaskPrioLow_10ms"   // A name just for humans
     ,  2048  // This stack size can be checked & adjusted by reading the Stack Highwater
+    ,  NULL
+    ,  1  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
+    ,  NULL 
+    ,  ARDUINO_RUNNING_CORE);
+
+    xTaskCreatePinnedToCore(
+    TaskPrioHigh_1ms
+    ,  "TaskPrioHigh_1ms"   // A name just for humans
+    ,  1024  // This stack size can be checked & adjusted by reading the Stack Highwater
     ,  NULL
     ,  1  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
     ,  NULL 
@@ -934,6 +945,7 @@ void RcRcvEmergOff() {
 }
 
 void ReceiveUARTPlaus() {
+  //Serial.print("timeUARTRcvMs: "); Serial.println((uint16_t)millis() - tMillisUART);
   if (((uint16_t)millis() - tMillisUART) > UART_TIMEOUT)  //Trigger Timeout
   {
     tMillisUART = (uint16_t)millis() - UART_TIMEOUT - 1;  //pull tMillisUART behind actual millis to avoid overflow/runover-effects
@@ -998,32 +1010,32 @@ void SerialReport(){
 
 void TorqueControl() {
   AcclrtReadPlaus();
-  Serial.print("adc:");  Serial.print(acclrt_adc);
+  //Serial.print("adc:");  Serial.print(acclrt_adc);
   // Serial.print(",acQlf:");  Serial.print(acclrt_qlf);
   // Serial.print(",acEC:");  Serial.print(acclrt_errCnt);
 
   RcRcvCh2ReadPlaus();
-   Serial.print(",TRc2:");  Serial.print(RcRcvCh2_TDuty);
+  // Serial.print(",TRc2:");  Serial.print(RcRcvCh2_TDuty);
    //Serial.print(",Rc2Qlf:");  Serial.print(RcRcvCh2_qlf);
    //Serial.print(",Rc2EC:");  Serial.println(RcRcvCh2_errCnt);
 
   RcRcvCh5ReadPlaus();
-  Serial.print(",TRc5:");  Serial.print(RcRcvCh5_TDuty);
+  //Serial.print(",TRc5:");  Serial.print(RcRcvCh5_TDuty);
   //Serial.print(",Rc5Qlf:");  Serial.print(RcRcvCh5_qlf);
 
   RcRcvCh4ReadPlaus();
-   Serial.print(",TRc4:");  Serial.print(RcRcvCh4_TDuty);
+  //Serial.print(",TRc4:");  Serial.print(RcRcvCh4_TDuty);
   // Serial.print(",Rc4Qlf:");  Serial.print(RcRcvCh4_qlf);
 
   RcRcvCh3ReadPlaus();
-   Serial.print(",TRc3:");  Serial.print(RcRcvCh3_TDuty);
+  //Serial.print(",TRc3:");  Serial.print(RcRcvCh3_TDuty);
   // Serial.print(",Rc3Qlf:");  Serial.print(RcRcvCh3_qlf);
 
   RcRcvCh1ReadPlaus();
-  Serial.print(",TRc1:");  Serial.print(RcRcvCh1_TDuty);
+  //Serial.print(",TRc1:");  Serial.println(RcRcvCh1_TDuty);
   //Serial.print(",Rc1Qlf:");  Serial.println(RcRcvCh1_qlf);
 
-  ReceiveUART();
+
   ReceiveUARTPlaus();
   // Serial.print(",Savg:");  Serial.print(speedAvg_meas);
 
@@ -1118,6 +1130,8 @@ void TorqueControl() {
   //Send Heartbeat to communicate task was running
   StTorqueControlRunning = 1;
   Serial.println("Z");
+  Serial.print("StackHi10ms:"); Serial.println(uxHighWaterMark_TaskPrioHigh_10ms);
+  Serial.print("StackLo10ms:"); Serial.println(uxHighWaterMark_TaskPrioLow_10ms);
 }
 
 void TaskPrioLow_10ms(void *pvParameters) {
@@ -1127,6 +1141,9 @@ void TaskPrioLow_10ms(void *pvParameters) {
   // Initialise the xLastWakeTime variable with the current time.
   xLastWakeTime = xTaskGetTickCount();
 
+  /* Inspect our own high water mark on entering the task. */
+  uxHighWaterMark_TaskPrioLow_10ms = uxTaskGetStackHighWaterMark( NULL );
+
   for( ;; )
   {
       // Wait for the next cycle.
@@ -1134,12 +1151,38 @@ void TaskPrioLow_10ms(void *pvParameters) {
 
       // Perform action here.
       SerialReport();
+
+      uxHighWaterMark_TaskPrioLow_10ms = uxTaskGetStackHighWaterMark( NULL );
   }  
 }
 
 void TaskPrioHigh_10ms(void *pvParameters) {
   TickType_t xLastWakeTime;
-  const TickType_t xFrequency = pdMS_TO_TICKS(10);  //10 ms Task-Cycle
+  const TickType_t xFrequency = pdMS_TO_TICKS(10);  //10 ms Task-Cycle  
+  
+
+  // Initialise the xLastWakeTime variable with the current time.
+  xLastWakeTime = xTaskGetTickCount();
+
+  /* Inspect our own high water mark on entering the task. */
+  uxHighWaterMark_TaskPrioHigh_10ms = uxTaskGetStackHighWaterMark( NULL );
+
+  for( ;; )
+  {
+      // Wait for the next cycle.
+      vTaskDelayUntil( &xLastWakeTime, xFrequency );
+
+      // Perform action here.
+      TorqueControl();
+
+      uxHighWaterMark_TaskPrioHigh_10ms = uxTaskGetStackHighWaterMark( NULL );
+  }  
+}
+
+void TaskPrioHigh_1ms(void *pvParameters) {
+  TickType_t xLastWakeTime;
+  const TickType_t xFrequency = pdMS_TO_TICKS(1);  //1 ms Task-Cycle  
+  
 
   // Initialise the xLastWakeTime variable with the current time.
   xLastWakeTime = xTaskGetTickCount();
@@ -1150,7 +1193,7 @@ void TaskPrioHigh_10ms(void *pvParameters) {
       vTaskDelayUntil( &xLastWakeTime, xFrequency );
 
       // Perform action here.
-      TorqueControl();
+      ReceiveUART();
   }  
 }
 
