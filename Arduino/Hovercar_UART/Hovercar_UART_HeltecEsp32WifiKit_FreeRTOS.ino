@@ -21,6 +21,8 @@
 #define HOVER_SERIAL_BAUD 115200  // [-] Baud rate for Serial1 (used to communicate with the hoverboard)
 #define HOVER_SERIAL_RX_PIN 5      //
 #define HOVER_SERIAL_TX_PIN 17      //
+#define HOVER_SERIAL_TIMEOUT 100      //Timeout for last valid UART Receive in millis
+
 #define SERIAL_BAUD 115200        // [-] Baud rate for USB Serial
 //#define BT_SERIAL_BAUD 9600        // [-] Baud rate Bluetooth Serial2 (used for SerialReport)
 #define START_FRAME 0xABCD        // [-] Start frme definition for reliable serial communication
@@ -118,9 +120,6 @@
 #define RCRCV_SPDCMD_MIN    30       //Command @ RCRCV_CH5_TD_MIN
 #define RCRCV_SPDCMD_MAX    650    //Command @ RCRCV_CH5_TD_MAX
 #define SPDCMD_REVERSE      100     //Speedlimit when driving reverse
-
-//UART
-#define UART_TIMEOUT      60      //Timeout for last valid UART Receive in millis
 
 // #define DEBUG_RX                        // [-] Debug received data. Prints all bytes to serial (comment-out to disable)
 // #define DEBUG_TX
@@ -974,9 +973,9 @@ void RcRcvEmergOff() {
 
 void ReceiveUARTPlaus() {
   //Serial.print("timeUARTRcvMs: "); Serial.println((uint16_t)millis() - tMillisUART);
-  if (((uint16_t)millis() - tMillisUART) > UART_TIMEOUT)  //Trigger Timeout
+  if (((uint16_t)millis() - tMillisUART) > HOVER_SERIAL_TIMEOUT)  //Trigger Timeout
   {
-    tMillisUART = (uint16_t)millis() - UART_TIMEOUT - 1;  //pull tMillisUART behind actual millis to avoid overflow/runover-effects
+    tMillisUART = (uint16_t)millis() - HOVER_SERIAL_TIMEOUT - 1;  //pull tMillisUART behind actual millis to avoid overflow/runover-effects
 
     UART_qlf = 2;
 
