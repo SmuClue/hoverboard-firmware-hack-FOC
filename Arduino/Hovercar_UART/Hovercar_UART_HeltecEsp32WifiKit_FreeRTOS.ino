@@ -6,8 +6,13 @@
 
 // ########################## includes ##########################
 #include "BluetoothSerial.h"
+#include "heltec.h"
 
 // ########################## DEFINES ##########################
+//HV Battery Voltages
+#define UBATHV100P 42.0
+#define UBATHV0P 34.0
+
 // UART
 #define HOVER_SERIAL_BAUD 115200  // [-] Baud rate for Serial1 (used to communicate with the hoverboard)
 #define HOVER_SERIAL_RX_PIN 5      //
@@ -21,11 +26,11 @@
 #define ACCLRT_SUPPLY_PIN 13     //3.3V Supply for Accelerator
 #define ACCLRT_SENS_PIN 12       //Sensor ADC for Accelerator
 #define ACCLRT_GND_PIN 14        //GND Supply for Accelerator
-#define ACCLRT_ADC_MIN 210       //MIN-Value of ADC over wich TrqRequest starts
-#define ACCLRT_ADC_MIN_DIAG 170  //MIN-Threshold of ADC for Diagnosis
-#define ACCLRT_ADC_MAX 820       //MIN-Value of ADC over wich TrqRequest starts
-#define ACCLRT_ADC_MAX_DIAG 890  //MIN-Threshold of ADC for Diagnosis
-#define ACCLRT_ADC_GRD_DIAG 300   //MAX-Absolute change of ADC over 1 Cycle for Diagnosis
+#define ACCLRT_ADC_MIN 1100       //MIN-Value of ADC over wich TrqRequest starts
+#define ACCLRT_ADC_MIN_DIAG 900  //MIN-Threshold of ADC for Diagnosis
+#define ACCLRT_ADC_MAX 2750       //MIN-Value of ADC over wich TrqRequest starts
+#define ACCLRT_ADC_MAX_DIAG 3000  //MIN-Threshold of ADC for Diagnosis
+#define ACCLRT_ADC_GRD_DIAG 800   //MAX-Absolute change of ADC over 1 Cycle for Diagnosis
 #define ACCLRT_ERRCNTMAX   5          //max number of Error-Counter bevore Qlf is set to invalid
 #define ACCLRT_TRQCMD_MAX 600   //Command @ ADC_MAX (Max = 1000)
 #define ACCLRT_TRQCMD_MIN 0    //Command @ ADC_MIN
@@ -240,12 +245,22 @@ BluetoothSerial SerialBT;
 void TaskPrioHigh_10ms(void *pvParameters);
 void TaskPrioLow_10ms(void *pvParameters);
 void TaskPrioHigh_1ms(void *pvParameters);
+void TaskPrioLow_500ms(void *pvParameters);
 
 UBaseType_t uxHighWaterMark_TaskPrioHigh_10ms;
 UBaseType_t uxHighWaterMark_TaskPrioLow_10ms;
+UBaseType_t uxHighWaterMark_TaskPrioLow_500ms;
+UBaseType_t uxHighWaterMark_TaskPrioHigh_1ms;
 
 // ########################## SETUP ##########################
 void setup() {
+  //Heltec(Display)
+  Heltec.begin(true /*DisplayEnable Enable*/, false /*LoRa Disable*/, true /*Serial Enable*/);
+  Heltec.display->setFont(ArialMT_Plain_10);
+  Heltec.display->clear();
+  Heltec.display->drawString(0,0,"Setup...");
+  Heltec.display->display();
+  
   //Serials
   Serial.begin(SERIAL_BAUD);  //USB Serial
   Serial.println("Hoverboard Serial v1.0");
@@ -309,7 +324,16 @@ void setup() {
     xTaskCreatePinnedToCore(
     TaskPrioHigh_1ms
     ,  "TaskPrioHigh_1ms"   // A name just for humans
-    ,  1024  // This stack size can be checked & adjusted by reading the Stack Highwater
+    ,  2048  // This stack size can be checked & adjusted by reading the Stack Highwater
+    ,  NULL
+    ,  2  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
+    ,  NULL 
+    ,  ARDUINO_RUNNING_CORE);
+
+    xTaskCreatePinnedToCore(
+    TaskPrioLow_500ms
+    ,  "TaskPrioLow_500ms"   // A name just for humans
+    ,  2048  // This stack size can be checked & adjusted by reading the Stack Highwater
     ,  NULL
     ,  1  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
     ,  NULL 
@@ -1008,9 +1032,32 @@ void SerialReport(){
   }
 }
 
+void DisplayReport(){
+  Heltec.display->clear();
+
+  //Heltec.display->drawString(10, 10, "t = " + String(pdTICKS_TO_MS(xLastWakeTime)%10000) + " ms");
+
+  //display Qlf
+  Heltec.display->setTextAlignment(TEXT_ALIGN_LEFT);
+  Heltec.display->drawString(0,0,"AcclrtQlf=" + String(acclrt_qlf));  Heltec.display->drawString(64,0,"UARTQlf=" + String(UART_qlf));
+  Heltec.display->drawString(0,10,"RcCh1Qlf=" + String(RcRcvCh1_qlf));  Heltec.display->drawString(64,10,"RcCh2Qlf=" + String(RcRcvCh2_qlf));
+  Heltec.display->drawString(0,20,"RcCh3Qlf=" + String(RcRcvCh3_qlf));  Heltec.display->drawString(64,20,"RcCh4Qlf=" + String(RcRcvCh4_qlf));
+  Heltec.display->drawString(0,30,"RcCh5Qlf=" + String(RcRcvCh5_qlf));  Heltec.display->drawString(64,30,"Fahrfrgb=" + String(Fahrfreigabe));
+
+  //display bat status
+  float32_t UBatPerc = ((float32_t)Feedback.batVoltage/(float32_t)100.0 - (float32_t)UBATHV0P)/((float32_t)UBATHV100P - (float32_t)UBATHV0P);
+  UBatPerc = max(min((float32_t)100.0, UBatPerc),(float32_t)0.0);
+  Heltec.display->drawProgressBar(2, 44, 120, 10, round(UBatPerc));
+  Heltec.display->setTextAlignment(TEXT_ALIGN_CENTER);
+  Heltec.display->drawString(64,54,"UBatHV = " + String((float32_t)Feedback.batVoltage/(float32_t)100.0) + " V");
+
+
+  Heltec.display->display();
+}
+
 void TorqueControl() {
   AcclrtReadPlaus();
-  //Serial.print("adc:");  Serial.print(acclrt_adc);
+  Serial.print("adc:");  Serial.println(acclrt_adc);
   // Serial.print(",acQlf:");  Serial.print(acclrt_qlf);
   // Serial.print(",acEC:");  Serial.print(acclrt_errCnt);
 
@@ -1130,8 +1177,6 @@ void TorqueControl() {
   //Send Heartbeat to communicate task was running
   StTorqueControlRunning = 1;
   Serial.println("Z");
-  Serial.print("StackHi10ms:"); Serial.println(uxHighWaterMark_TaskPrioHigh_10ms);
-  Serial.print("StackLo10ms:"); Serial.println(uxHighWaterMark_TaskPrioLow_10ms);
 }
 
 void TaskPrioLow_10ms(void *pvParameters) {
@@ -1151,6 +1196,35 @@ void TaskPrioLow_10ms(void *pvParameters) {
 
       // Perform action here.
       SerialReport();
+
+      uxHighWaterMark_TaskPrioLow_10ms = uxTaskGetStackHighWaterMark( NULL );
+  }  
+}
+
+void TaskPrioLow_500ms(void *pvParameters) {
+  TickType_t xLastWakeTime;
+  const TickType_t xFrequency = pdMS_TO_TICKS(500);  //500 ms Task-Cycle
+
+  // Initialise the xLastWakeTime variable with the current time.
+  xLastWakeTime = xTaskGetTickCount();
+
+  /* Inspect our own high water mark on entering the task. */
+  uxHighWaterMark_TaskPrioLow_500ms = uxTaskGetStackHighWaterMark( NULL );
+
+  for( ;; )
+  {
+      // Wait for the next cycle.
+      vTaskDelayUntil( &xLastWakeTime, xFrequency );
+
+      // Perform action here.
+      //Report Stack HighWaterMark of all tasks (= Stack Bytes that are not in use (higher = better))
+      Serial.print("StackHi10ms:"); Serial.println(uxHighWaterMark_TaskPrioHigh_10ms);
+      Serial.print("StackLo10ms:"); Serial.println(uxHighWaterMark_TaskPrioLow_10ms);
+      Serial.print("StackLo500ms:"); Serial.println(uxHighWaterMark_TaskPrioLow_500ms);
+      Serial.print("StackHi1ms:"); Serial.println(uxHighWaterMark_TaskPrioHigh_1ms);
+
+      //Display
+      DisplayReport();
 
       uxHighWaterMark_TaskPrioLow_10ms = uxTaskGetStackHighWaterMark( NULL );
   }  
@@ -1187,6 +1261,9 @@ void TaskPrioHigh_1ms(void *pvParameters) {
   // Initialise the xLastWakeTime variable with the current time.
   xLastWakeTime = xTaskGetTickCount();
 
+  /* Inspect our own high water mark on entering the task. */
+  uxHighWaterMark_TaskPrioHigh_1ms = uxTaskGetStackHighWaterMark( NULL );
+
   for( ;; )
   {
       // Wait for the next cycle.
@@ -1194,6 +1271,8 @@ void TaskPrioHigh_1ms(void *pvParameters) {
 
       // Perform action here.
       ReceiveUART();
+
+      uxHighWaterMark_TaskPrioHigh_1ms = uxTaskGetStackHighWaterMark( NULL );
   }  
 }
 
