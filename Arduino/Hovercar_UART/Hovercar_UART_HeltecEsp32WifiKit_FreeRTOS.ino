@@ -13,6 +13,10 @@
 #define UBATHV100P 42.0
 #define UBATHV0P 34.0
 
+//LV Battery Voltages
+#define UBATLV100P 8.4
+#define UBATLV0P 6.8
+
 // UART
 #define HOVER_SERIAL_BAUD 115200  // [-] Baud rate for Serial1 (used to communicate with the hoverboard)
 #define HOVER_SERIAL_RX_PIN 5      //
@@ -1023,7 +1027,8 @@ void SerialReport(){
   SerialBT.print("r "); SerialBT.println(SpdCmd);
   SerialBT.print("s "); SerialBT.println(Fahrfreigabe);
   SerialBT.print("t "); SerialBT.println(Feedback.pwml);
-  SerialBT.print("u "); SerialBT.println(Feedback.pwmr);
+  SerialBT.print("u "); SerialBT.println(Feedback.pwmr);  
+  SerialBT.print("v "); SerialBT.println(acclrt_adc);
 
   if (StTorqueControlRunning)
   {
@@ -1037,19 +1042,40 @@ void DisplayReport(){
 
   //Heltec.display->drawString(10, 10, "t = " + String(pdTICKS_TO_MS(xLastWakeTime)%10000) + " ms");
 
-  //display Qlf
+  
   Heltec.display->setTextAlignment(TEXT_ALIGN_LEFT);
-  Heltec.display->drawString(0,0,"AcclrtQlf=" + String(acclrt_qlf));  Heltec.display->drawString(64,0,"UARTQlf=" + String(UART_qlf));
-  Heltec.display->drawString(0,10,"RcCh1Qlf=" + String(RcRcvCh1_qlf));  Heltec.display->drawString(64,10,"RcCh2Qlf=" + String(RcRcvCh2_qlf));
-  Heltec.display->drawString(0,20,"RcCh3Qlf=" + String(RcRcvCh3_qlf));  Heltec.display->drawString(64,20,"RcCh4Qlf=" + String(RcRcvCh4_qlf));
-  Heltec.display->drawString(0,30,"RcCh5Qlf=" + String(RcRcvCh5_qlf));  Heltec.display->drawString(64,30,"Fahrfrgb=" + String(Fahrfreigabe));
 
-  //display bat status
-  float32_t UBatPerc = ((float32_t)Feedback.batVoltage/(float32_t)100.0 - (float32_t)UBATHV0P)/((float32_t)UBATHV100P - (float32_t)UBATHV0P);
-  UBatPerc = max(min((float32_t)100.0, UBatPerc),(float32_t)0.0);
+  //Line 1: display Qlf Acclrt + UART
+  Heltec.display->drawString(0,0,"AcclrtQlf=" + String(acclrt_qlf));  Heltec.display->drawString(64,0,"UARTQlf=" + String(UART_qlf));
+
+  //Line 2: display Qlf RcRcv
+  if (RcRcvCh1_qlf != 1)
+    Heltec.display->drawString(0,10,"RcCh1Qlf=" + String(RcRcvCh1_qlf));
+  else if (RcRcvCh2_qlf != 1)
+    Heltec.display->drawString(0,10,"RcCh2Qlf=" + String(RcRcvCh2_qlf));
+  else if (RcRcvCh3_qlf != 1)
+    Heltec.display->drawString(0,10,"RcCh3Qlf=" + String(RcRcvCh3_qlf));
+  else if (RcRcvCh4_qlf != 1)
+    Heltec.display->drawString(0,10,"RcCh4Qlf=" + String(RcRcvCh4_qlf));
+  else if (RcRcvCh5_qlf != 1)
+    Heltec.display->drawString(0,10,"RcCh5Qlf=" + String(RcRcvCh5_qlf));
+  else
+    Heltec.display->drawString(0,10,"RcCh1-5Qlf=1" + String(RcRcvCh5_qlf));
+
+
+  //Line 3 -4: display HVbat status
+  float UBatPerc = ((float)Feedback.batVoltage/(float)100.0 - (float)UBATHV0P)/((float)UBATHV100P - (float)UBATHV0P)*(float)100.0;
+  UBatPerc = max(min((float)100.0, UBatPerc),(float)0.0);
+  Heltec.display->drawProgressBar(2, 22, 120, 10, round(UBatPerc));
+  Heltec.display->setTextAlignment(TEXT_ALIGN_CENTER);
+  Heltec.display->drawString(64,32,"UBatHV = " + String((float)Feedback.batVoltage/(float)100.0) + " V");
+
+  //Line 5 - 6: display LVbat status
+  UBatPerc = ((float)740/(float)100.0 - (float)UBATLV0P)/((float)UBATLV100P - (float)UBATLV0P)*(float)100.0;
+  UBatPerc = max(min((float)100.0, UBatPerc),(float)0.0);
   Heltec.display->drawProgressBar(2, 44, 120, 10, round(UBatPerc));
   Heltec.display->setTextAlignment(TEXT_ALIGN_CENTER);
-  Heltec.display->drawString(64,54,"UBatHV = " + String((float32_t)Feedback.batVoltage/(float32_t)100.0) + " V");
+  Heltec.display->drawString(64,54,"UBatLV = " + String((float)740/(float)100.0) + " V");
 
 
   Heltec.display->display();
@@ -1057,7 +1083,7 @@ void DisplayReport(){
 
 void TorqueControl() {
   AcclrtReadPlaus();
-  Serial.print("adc:");  Serial.println(acclrt_adc);
+  // Serial.print("adc:");  Serial.println(acclrt_adc);
   // Serial.print(",acQlf:");  Serial.print(acclrt_qlf);
   // Serial.print(",acEC:");  Serial.print(acclrt_errCnt);
 
@@ -1104,7 +1130,7 @@ void TorqueControl() {
     if (RcRcv_EmergOff == 1)
     {
       SendCommandSafeState();
-      if (RcRcv_EmergOffCnt > RCRCV_EMERGOFFCNT_RELAIS)
+      // if (RcRcv_EmergOffCnt > RCRCV_EMERGOFFCNT_RELAIS)
         // digitalWrite(DCRELAIS_PIN, HIGH);  //Turn Off/Open DC-Relais
     }
     //No Emergency Off
@@ -1166,12 +1192,12 @@ void TorqueControl() {
     SendCommandSafeState();
 
     // if RC Qlf not OK open Relais
-    if ((RcRcvCh1_qlf != 1) 
-      || (RcRcvCh2_qlf != 1) 
-      || (RcRcvCh3_qlf != 1) 
-      || (RcRcvCh4_qlf != 1) 
-      || (RcRcvCh5_qlf != 1))
-      // digitalWrite(DCRELAIS_PIN, HIGH);  //Turn Off/Open DC-Relais
+    // if ((RcRcvCh1_qlf != 1) 
+    //   || (RcRcvCh2_qlf != 1) 
+    //   || (RcRcvCh3_qlf != 1) 
+    //   || (RcRcvCh4_qlf != 1) 
+    //   || (RcRcvCh5_qlf != 1))
+    // digitalWrite(DCRELAIS_PIN, HIGH);  //Turn Off/Open DC-Relais
   }
 
   //Send Heartbeat to communicate task was running
