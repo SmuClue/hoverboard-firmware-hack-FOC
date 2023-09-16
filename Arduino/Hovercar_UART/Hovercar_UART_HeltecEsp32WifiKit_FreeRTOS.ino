@@ -46,7 +46,7 @@
 #define RCRCV_CH3_PIN 34        //PWM In for RC-Receiver CH4 (3-Way-Switch)
 
 //DC-Relais PINS
-#define DCRELAIS_PIN 13          //Digital out controlling DC-Relais
+//#define DCRELAIS_PIN           //Digital out controlling DC-Relais
 //#define DCRELAIS_SUPPLY_PIN 8   //DC VCC 5V (not Supply for Relais "VCC-JD") -> From 5V-Port
 
 //CH2 RC Throttle (RcRcv_TrqCmd)
@@ -294,8 +294,8 @@ void setup() {
   attachInterrupt(RCRCV_CH3_PIN, IsrRcRcvCh3, CHANGE);
 
   // PINS DC-Relais
-  pinMode(DCRELAIS_PIN, OUTPUT);
-  digitalWrite(DCRELAIS_PIN, HIGH);   //HIGH = Relais not actuated
+  // pinMode(DCRELAIS_PIN, OUTPUT);
+  // digitalWrite(DCRELAIS_PIN, HIGH);   //HIGH = Relais not actuated
 
   //Initialize
   acclrt_adc = analogRead(ACCLRT_SENS_PIN);
@@ -1105,12 +1105,12 @@ void TorqueControl() {
     {
       SendCommandSafeState();
       if (RcRcv_EmergOffCnt > RCRCV_EMERGOFFCNT_RELAIS)
-        digitalWrite(DCRELAIS_PIN, HIGH);  //Turn Off/Open DC-Relais
+        // digitalWrite(DCRELAIS_PIN, HIGH);  //Turn Off/Open DC-Relais
     }
     //No Emergency Off
     else 
     {
-      digitalWrite(DCRELAIS_PIN, LOW);  //Turn On/Close DC-Relais
+      // digitalWrite(DCRELAIS_PIN, LOW);  //Turn On/Close DC-Relais
 
       RcRcvSpdCmd();
       // Serial.print(",SC:");  Serial.print(RcRcv_SpdCmd);
@@ -1171,7 +1171,7 @@ void TorqueControl() {
       || (RcRcvCh3_qlf != 1) 
       || (RcRcvCh4_qlf != 1) 
       || (RcRcvCh5_qlf != 1))
-      digitalWrite(DCRELAIS_PIN, HIGH);  //Turn Off/Open DC-Relais
+      // digitalWrite(DCRELAIS_PIN, HIGH);  //Turn Off/Open DC-Relais
   }
 
   //Send Heartbeat to communicate task was running
