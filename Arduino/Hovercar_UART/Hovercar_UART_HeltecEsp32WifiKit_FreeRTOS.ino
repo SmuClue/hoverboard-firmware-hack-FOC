@@ -18,9 +18,9 @@
 //#define UART_GND_PIN            //GND for UART on Serial 3 (pins 15, 14) use GND-Port
 
 // Accelerator ADC
-#define ACCLRT_SUPPLY_PIN 21     //3.3V Supply for Accelerator
-#define ACCLRT_SENS_PIN 22       //Sensor ADC for Accelerator
-#define ACCLRT_GND_PIN 19        //GND Supply for Accelerator
+#define ACCLRT_SUPPLY_PIN 13     //3.3V Supply for Accelerator
+#define ACCLRT_SENS_PIN 12       //Sensor ADC for Accelerator
+#define ACCLRT_GND_PIN 14        //GND Supply for Accelerator
 #define ACCLRT_ADC_MIN 210       //MIN-Value of ADC over wich TrqRequest starts
 #define ACCLRT_ADC_MIN_DIAG 170  //MIN-Threshold of ADC for Diagnosis
 #define ACCLRT_ADC_MAX 820       //MIN-Value of ADC over wich TrqRequest starts
@@ -35,8 +35,8 @@
 //#define RCRCV_GND_PIN 30         //GND Supply RC-Receiver from GND-Port
 #define RCRCV_CH2_PIN 38         //PWM In for RC-Receiver CH2 (Throttle)
 #define RCRCV_CH1_PIN 36         //PWM In for RC-Receiver CH1 (Steering)
-#define RCRCV_CH6_PIN 12         //PWM In for RC-Receiver CH5 (Drehknopf)
-#define RCRCV_CH5_PIN 27         //PWM In for RC-Receiver CH6 (Drehknopf)
+//#define RCRCV_CH6_PIN         //PWM In for RC-Receiver CH6 (Drehknopf)
+#define RCRCV_CH5_PIN 27         //PWM In for RC-Receiver CH5 (Drehknopf)
 #define RCRCV_CH4_PIN 32         //PWM In for RC-Receiver CH4 (3-Way-Switch)
 #define RCRCV_CH3_PIN 34        //PWM In for RC-Receiver CH4 (3-Way-Switch)
 
