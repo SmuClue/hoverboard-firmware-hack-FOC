@@ -210,6 +210,8 @@ uint16_t tMicrosRcRcvCh3Pwm1 = 1;
 uint16_t tMilisRcRcvCh3Pwm = 0;
 uint8_t RcRcvCh3NewData = 0;
 
+uint8_t FlagLastQlfNotOk = 0; //bit0 = RcvCh1Qlf; bit1 = RcvCh2Qlf; bit2 = RcvCh3Qlf; bit3 = RcvCh4Qlf; bit4 = RcvCh5Qlf; bit5 = RcvCh6Qlf; bit6 = Acclrt_Qlf; bit7 = UART_Qlf; 
+
 // Speed
 int16_t speedAvg_meas = 0;
 
@@ -971,6 +973,36 @@ void RcRcvEmergOff() {
   }
 }
 
+uint8_t set_bit(uint8_t x, uint8_t offset, bool value){
+    return (value)
+        ? x | (1 << offset)
+        : x & ~(1 << offset);
+}
+
+void SetFlagLastQlfNotOk(){
+  //bit0 = RcvCh1Qlf; bit1 = RcvCh2Qlf; bit2 = RcvCh3Qlf; bit3 = RcvCh4Qlf; bit4 = RcvCh5Qlf; bit5 = RcvCh6Qlf; bit6 = Acclrt_Qlf; bit7 = UART_Qlf; 
+  
+  if ((RcRcvCh1_qlf!=1)
+    ||(RcRcvCh2_qlf!=1)
+    ||(RcRcvCh3_qlf!=1)
+    ||(RcRcvCh4_qlf!=1)
+    ||(RcRcvCh5_qlf!=1)
+    //||(RcRcvCh6_qlf!=1)
+    ||(acclrt_qlf!=1)
+    ||(UART_qlf!=1))
+  {
+    FlagLastQlfNotOk = set_bit(FlagLastQlfNotOk, 0, (RcRcvCh1_qlf!=1));
+    FlagLastQlfNotOk = set_bit(FlagLastQlfNotOk, 1, (RcRcvCh2_qlf!=1));
+    FlagLastQlfNotOk = set_bit(FlagLastQlfNotOk, 2, (RcRcvCh3_qlf!=1));
+    FlagLastQlfNotOk = set_bit(FlagLastQlfNotOk, 3, (RcRcvCh4_qlf!=1));
+    FlagLastQlfNotOk = set_bit(FlagLastQlfNotOk, 4, (RcRcvCh5_qlf!=1));
+    //FlagLastQlfNotOk = set_bit(FlagLastQlfNotOk, 5, (RcRcvCh6_qlf!=1));
+    FlagLastQlfNotOk = set_bit(FlagLastQlfNotOk, 6, (acclrt_qlf!=1));
+    FlagLastQlfNotOk = set_bit(FlagLastQlfNotOk, 7, (UART_qlf!=1));
+  }
+
+}
+
 void ReceiveUARTPlaus() {
   //Serial.print("timeUARTRcvMs: "); Serial.println((uint16_t)millis() - tMillisUART);
   if (((uint16_t)millis() - tMillisUART) > HOVER_SERIAL_TIMEOUT)  //Trigger Timeout
@@ -1028,6 +1060,7 @@ void SerialReport(){
   SerialBT.print("t "); SerialBT.println(Feedback.pwml);
   SerialBT.print("u "); SerialBT.println(Feedback.pwmr);  
   SerialBT.print("v "); SerialBT.println(acclrt_adc);
+  SerialBT.print("w "); SerialBT.println(FlagLastQlfNotOk);
 
   if (StTorqueControlRunning)
   {
@@ -1128,6 +1161,7 @@ void TorqueControl() {
     //Emergency Off procedure
     if (RcRcv_EmergOff == 1)
     {
+      Fahrfreigabe = 0;
       SendCommandSafeState();
       // if (RcRcv_EmergOffCnt > RCRCV_EMERGOFFCNT_RELAIS)
         // digitalWrite(DCRELAIS_PIN, HIGH);  //Turn Off/Open DC-Relais
@@ -1198,6 +1232,8 @@ void TorqueControl() {
     //   || (RcRcvCh5_qlf != 1))
     // digitalWrite(DCRELAIS_PIN, HIGH);  //Turn Off/Open DC-Relais
   }
+
+  SetFlagLastQlfNotOk();
 
   //Send Heartbeat to communicate task was running
   StTorqueControlRunning = 1;
@@ -1295,7 +1331,12 @@ void TaskPrioHigh_1ms(void *pvParameters) {
       vTaskDelayUntil( &xLastWakeTime, xFrequency );
 
       // Perform action here.
-      ReceiveUART();
+      //ReceiveUART several times to make sure all Bytes are received
+      for (uint8_t i = 1; i<4; i++)
+      {
+        ReceiveUART();
+      }
+      
 
       uxHighWaterMark_TaskPrioHigh_1ms = uxTaskGetStackHighWaterMark( NULL );
   }  
