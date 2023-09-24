@@ -51,9 +51,8 @@
 #define RCRCV_CH4_PIN 32         //PWM In for RC-Receiver CH4 (3-Way-Switch)
 #define RCRCV_CH3_PIN 34        //PWM In for RC-Receiver CH4 (3-Way-Switch)
 
-//DC-Relais PINS
-//#define DCRELAIS_PIN           //Digital out controlling DC-Relais
-//#define DCRELAIS_SUPPLY_PIN 8   //DC VCC 5V (not Supply for Relais "VCC-JD") -> From 5V-Port
+//EncoderSwitch PINS
+#define ENCSWITCH_PIN 21           //Digital out controlling Transistor switching Encoder (Hoverboard Motorencoder) GND off/open
 
 //CH2 RC Throttle (RcRcv_TrqCmd)
 #define RCRCV_CH2_TD_MIN  1000           //Min Duty-Time in micros 
@@ -298,9 +297,9 @@ void setup() {
   pinMode(RCRCV_CH3_PIN, INPUT_PULLDOWN);
   attachInterrupt(RCRCV_CH3_PIN, IsrRcRcvCh3, CHANGE);
 
-  // PINS DC-Relais
-  // pinMode(DCRELAIS_PIN, OUTPUT);
-  // digitalWrite(DCRELAIS_PIN, HIGH);   //HIGH = Relais not actuated
+  // PINS EncoderSwitch
+  pinMode(ENCSWITCH_PIN, OUTPUT);
+  digitalWrite(ENCSWITCH_PIN, LOW);   // LOW = Encoders off
 
   //Initialize
   acclrt_adc = analogRead(ACCLRT_SENS_PIN);
@@ -1164,12 +1163,12 @@ void TorqueControl() {
       Fahrfreigabe = 0;
       SendCommandSafeState();
       // if (RcRcv_EmergOffCnt > RCRCV_EMERGOFFCNT_RELAIS)
-        // digitalWrite(DCRELAIS_PIN, HIGH);  //Turn Off/Open DC-Relais
+      digitalWrite(ENCSWITCH_PIN, LOW);  //Turn Off Encoders
     }
     //No Emergency Off
     else 
     {
-      // digitalWrite(DCRELAIS_PIN, LOW);  //Turn On/Close DC-Relais
+      digitalWrite(ENCSWITCH_PIN, HIGH);  //Turn On Encoders
 
       RcRcvSpdCmd();
       // Serial.print(",SC:");  Serial.print(RcRcv_SpdCmd);
@@ -1224,13 +1223,13 @@ void TorqueControl() {
     Fahrfreigabe = 0;
     SendCommandSafeState();
 
-    // if RC Qlf not OK open Relais
-    // if ((RcRcvCh1_qlf != 1) 
-    //   || (RcRcvCh2_qlf != 1) 
-    //   || (RcRcvCh3_qlf != 1) 
-    //   || (RcRcvCh4_qlf != 1) 
-    //   || (RcRcvCh5_qlf != 1))
-    // digitalWrite(DCRELAIS_PIN, HIGH);  //Turn Off/Open DC-Relais
+    //if RC Qlf not OK open Relais
+    if ((RcRcvCh1_qlf != 1) 
+      || (RcRcvCh2_qlf != 1) 
+      || (RcRcvCh3_qlf != 1) 
+      || (RcRcvCh4_qlf != 1) 
+      || (RcRcvCh5_qlf != 1))
+    digitalWrite(ENCSWITCH_PIN, LOW);  //Turn Off Encoders
   }
 
   SetFlagLastQlfNotOk();
