@@ -249,13 +249,13 @@ BluetoothSerial SerialBT;
 
 void TaskPrioHigh_10ms(void *pvParameters);
 void TaskPrioLow_10ms(void *pvParameters);
-void TaskPrioHigh_1ms(void *pvParameters);
+void TaskPrioLow_1ms(void *pvParameters);
 void TaskPrioLow_500ms(void *pvParameters);
 
 UBaseType_t uxHighWaterMark_TaskPrioHigh_10ms;
 UBaseType_t uxHighWaterMark_TaskPrioLow_10ms;
 UBaseType_t uxHighWaterMark_TaskPrioLow_500ms;
-UBaseType_t uxHighWaterMark_TaskPrioHigh_1ms;
+UBaseType_t uxHighWaterMark_TaskPrioLow_1ms;
 
 // ########################## SETUP ##########################
 void setup() {
@@ -327,11 +327,11 @@ void setup() {
     ,  ARDUINO_RUNNING_CORE);
 
     xTaskCreatePinnedToCore(
-    TaskPrioHigh_1ms
-    ,  "TaskPrioHigh_1ms"   // A name just for humans
+    TaskPrioLow_1ms
+    ,  "TaskPrioLow_1ms"   // A name just for humans
     ,  2048  // This stack size can be checked & adjusted by reading the Stack Highwater
     ,  NULL
-    ,  2  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
+    ,  1  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
     ,  NULL 
     ,  ARDUINO_RUNNING_CORE);
 
@@ -1282,7 +1282,7 @@ void TaskPrioLow_500ms(void *pvParameters) {
       Serial.print("StackHi10ms:"); Serial.println(uxHighWaterMark_TaskPrioHigh_10ms);
       Serial.print("StackLo10ms:"); Serial.println(uxHighWaterMark_TaskPrioLow_10ms);
       Serial.print("StackLo500ms:"); Serial.println(uxHighWaterMark_TaskPrioLow_500ms);
-      Serial.print("StackHi1ms:"); Serial.println(uxHighWaterMark_TaskPrioHigh_1ms);
+      Serial.print("StackHi1ms:"); Serial.println(uxHighWaterMark_TaskPrioLow_1ms);
 
       //Display
       DisplayReport();
@@ -1314,7 +1314,7 @@ void TaskPrioHigh_10ms(void *pvParameters) {
   }  
 }
 
-void TaskPrioHigh_1ms(void *pvParameters) {
+void TaskPrioLow_1ms(void *pvParameters) {
   TickType_t xLastWakeTime;
   const TickType_t xFrequency = pdMS_TO_TICKS(1);  //1 ms Task-Cycle  
   
@@ -1323,7 +1323,7 @@ void TaskPrioHigh_1ms(void *pvParameters) {
   xLastWakeTime = xTaskGetTickCount();
 
   /* Inspect our own high water mark on entering the task. */
-  uxHighWaterMark_TaskPrioHigh_1ms = uxTaskGetStackHighWaterMark( NULL );
+  uxHighWaterMark_TaskPrioLow_1ms = uxTaskGetStackHighWaterMark( NULL );
 
   for( ;; )
   {
@@ -1338,7 +1338,7 @@ void TaskPrioHigh_1ms(void *pvParameters) {
       }
       
 
-      uxHighWaterMark_TaskPrioHigh_1ms = uxTaskGetStackHighWaterMark( NULL );
+      uxHighWaterMark_TaskPrioLow_1ms = uxTaskGetStackHighWaterMark( NULL );
   }  
 }
 
