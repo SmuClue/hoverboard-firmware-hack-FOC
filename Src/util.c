@@ -1278,17 +1278,34 @@ void usart_process_command(SerialCommand *command_in, SerialCommand *command_out
     checksum = (uint16_t)(command_in->start ^ command_in->steer ^ command_in->speed ^ command_in->nmax);
     if (command_in->checksum == checksum) {
       *command_out = *command_in;
-      if (usart_idx == 2) {             // Sideboard USART2
-        #ifdef CONTROL_SERIAL_USART2
-        timeoutFlgSerial_L = 0;         // Clear timeout flag
-        timeoutCntSerial_L = 0;         // Reset timeout counter
-        #endif
-      } else if (usart_idx == 3) {      // Sideboard USART3
-        #ifdef CONTROL_SERIAL_USART3
-        timeoutFlgSerial_R = 0;         // Clear timeout flag
-        timeoutCntSerial_R = 0;         // Reset timeout counter
-        #endif
+      if (command_in->nmax == SERIAL_NMAX_CMD_OPEN_MODE)    // go into open_mode control to shut off motors
+      {
+        if (usart_idx == 2) {             // Sideboard USART2
+          #ifdef CONTROL_SERIAL_USART2
+          timeoutFlgSerial_L = 1;         // Set timeout flag
+          #endif
+        } else if (usart_idx == 3) {      // Sideboard USART3
+          #ifdef CONTROL_SERIAL_USART3
+          timeoutFlgSerial_R = 1;         // Set timeout flag
+          #endif
+        }
       }
+      else
+      {
+        if (usart_idx == 2) {             // Sideboard USART2
+          #ifdef CONTROL_SERIAL_USART2
+          timeoutFlgSerial_L = 0;         // Clear timeout flag
+          timeoutCntSerial_L = 0;         // Reset timeout counter
+          #endif
+        } else if (usart_idx == 3) {      // Sideboard USART3
+          #ifdef CONTROL_SERIAL_USART3
+          timeoutFlgSerial_R = 0;         // Clear timeout flag
+          timeoutCntSerial_R = 0;         // Reset timeout counter
+          #endif
+        }
+      }
+        
+
     }
   }
   #endif

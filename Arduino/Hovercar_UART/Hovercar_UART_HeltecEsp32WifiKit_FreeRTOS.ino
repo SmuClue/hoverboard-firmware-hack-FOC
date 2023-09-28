@@ -22,6 +22,7 @@
 #define HOVER_SERIAL_RX_PIN 5      //
 #define HOVER_SERIAL_TX_PIN 17      //
 #define HOVER_SERIAL_TIMEOUT 100      //Timeout for last valid UART Receive in millis
+#define HOVER_SERIAL_NMAX_CMD_OPEN_MODE  9999             //Must match with #define SERIAL_NMAX_CMD_OPEN_MODE in hoverboard config  
 
 #define SERIAL_BAUD 115200        // [-] Baud rate for USB Serial
 //#define BT_SERIAL_BAUD 9600        // [-] Baud rate Bluetooth Serial2 (used for SerialReport)
@@ -431,7 +432,7 @@ void SendCommand(int16_t SteerCommand, int16_t TrqCommand, int16_t nmaxCommand) 
 }
 
 void SendCommandSafeState(){
-  SendCommand(0, 0, 1000);  //Steer + TrqCommand 0 and no nmax-Controll (nmax 1000)
+  SendCommand(0, 0, HOVER_SERIAL_NMAX_CMD_OPEN_MODE);  //Steer + TrqCommand 0 + Set motors into open mode
 }
 
 void ReceiveUART() {
@@ -1162,8 +1163,8 @@ void TorqueControl() {
     {
       Fahrfreigabe = 0;
       SendCommandSafeState();
-      // if (RcRcv_EmergOffCnt > RCRCV_EMERGOFFCNT_RELAIS)
-      digitalWrite(ENCSWITCH_PIN, LOW);  //Turn Off Encoders
+      if (RcRcv_EmergOffCnt > RCRCV_EMERGOFFCNT_RELAIS)
+        digitalWrite(ENCSWITCH_PIN, LOW);  //Turn Off Encoders
     }
     //No Emergency Off
     else 
