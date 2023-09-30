@@ -1095,7 +1095,7 @@ void DisplayReport(){
   else if (RcRcvCh5_qlf != 1)
     Heltec.display->drawString(0,10,"RcCh5Qlf=" + String(RcRcvCh5_qlf));
   else
-    Heltec.display->drawString(0,10,"RcCh1-5Qlf=1" + String(RcRcvCh5_qlf));
+    Heltec.display->drawString(0,10,"RcCh1-5Qlf=" + String(RcRcvCh5_qlf));
 
 
   //Line 3 -4: display HVbat status
