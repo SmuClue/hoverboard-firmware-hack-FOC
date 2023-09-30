@@ -38,7 +38,7 @@
 #define ACCLRT_ADC_MAX 2800       //MIN-Value of ADC over wich TrqRequest starts
 #define ACCLRT_ADC_MAX_DIAG 3000  //MIN-Threshold of ADC for Diagnosis
 #define ACCLRT_ADC_GRD_DIAG 800   //MAX-Absolute change of ADC over 1 Cycle for Diagnosis
-#define ACCLRT_ERRCNTMAX   5          //max number of Error-Counter bevore Qlf is set to invalid
+#define ACCLRT_ERRCNTMAX   10          //max number of Error-Counter bevore Qlf is set to invalid
 #define ACCLRT_TRQCMD_MAX 600   //Command @ ADC_MAX (Max = 1000)
 #define ACCLRT_TRQCMD_MIN 0    //Command @ ADC_MIN
 
