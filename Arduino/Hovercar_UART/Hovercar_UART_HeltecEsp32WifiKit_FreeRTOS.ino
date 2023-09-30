@@ -11,7 +11,7 @@
 // ########################## DEFINES ##########################
 //HV Battery Voltages
 #define UBATHV100P 42.0
-#define UBATHV0P 34.0
+#define UBATHV0P 36.0
 
 //LV Battery Voltages
 #define UBATLV100P 8.4
