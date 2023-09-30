@@ -1062,8 +1062,8 @@ void SerialReport(){
   SerialBT.print("v "); SerialBT.println(acclrt_adc);
   SerialBT.print("w "); SerialBT.println(FlagLastQlfNotOk);
   SerialBT.print("x "); SerialBT.println(RcRcvCh2_TDuty);
-  SerialBT.print("y "); SerialBT.println(speedR_meas);
-  SerialBT.print("z "); SerialBT.println(speedL_meas);
+  SerialBT.print("y "); SerialBT.println(Feedback.speedR_meas);
+  SerialBT.print("z "); SerialBT.println(Feedback.speedL_meas);
 
   if (StTorqueControlRunning)
   {
