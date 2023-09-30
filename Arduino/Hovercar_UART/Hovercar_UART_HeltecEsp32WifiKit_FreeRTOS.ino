@@ -58,7 +58,7 @@
 //CH2 RC Throttle (RcRcv_TrqCmd)
 #define RCRCV_CH2_TD_MIN  1000           //Min Duty-Time in micros 
 #define RCRCV_CH2_TD_ZERO 1500          //Middle/Zero/RC-Off Duty-Time in micros
-#define RCRCV_CH2_TD_MAX  1900          //Max Duty-Time in micros
+#define RCRCV_CH2_TD_MAX  1950          //Max Duty-Time in micros
 #define RCRCV_CH2_TD_DEADBAND 40        //Deadband Duty-Time around TD_ZERO in micros
 #define RCRCV_CH2_TD_MAX_DIAG  2200     //Max Duty-Time in micros plausible
 #define RCRCV_CH2_TD_MIN_DIAG  800      //Min Duty-Time in micros plausible 
@@ -67,7 +67,7 @@
 #define RCRCV_CH2_ERRCNTMAX   5          //max number of Error-Counter bevore Qlf is set to invalid
 #define RCRCV_TRQCMD_MAX    1000        //Command @ RCRCV_CH2_TD_MAX (Max = 1000)
 #define RCRCV_TRQCMD_ZERO   0           //Command @ RCRCV_CH2_TD_ZERO +- RCRCV_CH2_TD_DEADBAND
-#define RCRCV_TRQCMD_MIN    -700        //Command @ RCRCV_CH2_TD_MIN
+#define RCRCV_TRQCMD_MIN    -800        //Command @ RCRCV_CH2_TD_MIN
 
 //CH1 RC Steering
 #define RCRCV_CH1_TD_MIN  1000           //Min Duty-Time in micros
@@ -117,8 +117,8 @@
 #define RCRCV_CH5_TIMEOUT     RCRCV_CH2_TIMEOUT        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
 #define RCRCV_CH5_ERRCNTMAX   RCRCV_CH2_ERRCNTMAX          //max number of Error-Counter bevore Qlf is set to invalid
 #define RCRCV_CH5_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
-#define RCRCV_SPDCMD_MIN    30       //Command @ RCRCV_CH5_TD_MIN
-#define RCRCV_SPDCMD_MAX    650    //Command @ RCRCV_CH5_TD_MAX
+#define RCRCV_SPDCMD_MIN    50       //Command @ RCRCV_CH5_TD_MIN
+#define RCRCV_SPDCMD_MAX    700    //Command @ RCRCV_CH5_TD_MAX
 #define SPDCMD_REVERSE      100     //Speedlimit when driving reverse
 
 // #define DEBUG_RX                        // [-] Debug received data. Prints all bytes to serial (comment-out to disable)
@@ -1061,6 +1061,9 @@ void SerialReport(){
   SerialBT.print("u "); SerialBT.println(Feedback.pwmr);  
   SerialBT.print("v "); SerialBT.println(acclrt_adc);
   SerialBT.print("w "); SerialBT.println(FlagLastQlfNotOk);
+  SerialBT.print("x "); SerialBT.println(RcRcvCh2_TDuty);
+  SerialBT.print("y "); SerialBT.println(speedR_meas);
+  SerialBT.print("z "); SerialBT.println(speedL_meas);
 
   if (StTorqueControlRunning)
   {
