@@ -517,7 +517,7 @@ int main(void) {
         Feedback.cmd2           = (int16_t)pwmr;
         Feedback.speedR_meas	  = (int16_t)rtY_Right.n_mot;
         Feedback.speedL_meas	  = (int16_t)rtY_Left.n_mot;
-        Feedback.batVoltage	    = (int16_t)batVoltageCalibUnfilt;
+        Feedback.batVoltage	    = (int16_t)batVoltageCalib;
         Feedback.boardTemp	    = (int16_t)board_temp_deg_c;
         Feedback.dc_curr        = (int16_t)dc_curr;
 
