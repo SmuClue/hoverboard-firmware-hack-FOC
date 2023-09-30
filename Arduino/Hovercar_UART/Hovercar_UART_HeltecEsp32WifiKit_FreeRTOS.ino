@@ -29,12 +29,21 @@
 #define START_FRAME 0xABCD        // [-] Start frme definition for reliable serial communication
 //#define UART_GND_PIN            //GND for UART on Serial 3 (pins 15, 14) use GND-Port
 
-#define TRQCMD_MAX  850           //Max-Value in HoverFirmware is 1000
-#define TRQCMD_MIN  -800           //Min-Value in HoverFirmware is -1000
+//Over-All min/max trq command
+#define TRQCMD_MAX  1000           //Max-Value in HoverFirmware is 1000
+#define TRQCMD_MIN  -900           //Min-Value in HoverFirmware is -1000
+#define TRQCMD_BRAKEOFFSET 200    //should match with Hoverboard ELECTRIC_BRAKE_THRES -> TRQ-Command above which actual acceleration torque is set
 
+//Limit starting torque to avoid harsh motor vibrations
+#define TRQSTART_ENABLED        //limits starting torque command
+#define TRQSTART_TRQ  (450+TRQCMD_BRAKEOFFSET)       //TrqCmd at 0 RPM (Start Torque)
+#define TRQSTART_K_RAMP 15      //Slope of TrqRamp over RPM (TrqCmd = TrqStart + speed*K_Ramp/10)
+
+//SpeedLim
 #define SPDLIM_ENABLED            //if defined Speedlim function is activated on arduino additionally to the one on hoverboard
 #define SPDLIM_K_CTRL 45          //Controller-Stiffnes of SpeedLim (TrqLim = SpeedDif * K_CTRL / 10)
-#define SPDLIM_TRQOFFSET 200      //should match with Hoverboard ELECTRIC_BRAKE_THRES
+#define SPDLIM_TRQOFFSET TRQCMD_BRAKEOFFSET      //should match with Hoverboard ELECTRIC_BRAKE_THRES
+#define SPDCMD_REVERSE      150     //Speedlimit when driving reverse
 
 // Accelerator ADC
 #define ACCLRT_SUPPLY_PIN 13     //3.3V Supply for Accelerator
@@ -126,7 +135,6 @@
 #define RCRCV_CH5_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
 #define RCRCV_SPDCMD_MIN    50       //Command @ RCRCV_CH5_TD_MIN
 #define RCRCV_SPDCMD_MAX    700    //Command @ RCRCV_CH5_TD_MAX
-#define SPDCMD_REVERSE      100     //Speedlimit when driving reverse
 
 // #define DEBUG_RX                        // [-] Debug received data. Prints all bytes to serial (comment-out to disable)
 // #define DEBUG_TX
@@ -1049,7 +1057,8 @@ void ReceiveUARTPlaus() {
     speedAvg_meas = (Feedback.speedL_meas - Feedback.speedR_meas)/2;
 }
 
-int16_t SpeedLimPos(int16_t speed_max, int16_t speed_meas, uint8_t K_Ctrl){
+int16_t SpeedLimPos(int16_t speed_max, int16_t speed_meas, uint8_t K_Ctrl)
+{
 
 int16_t SpeedDif = speed_max - speed_meas;
 int16_t TrqCmdSpeedlim = SPDLIM_TRQOFFSET + SpeedDif * K_Ctrl / (int8_t)10;
@@ -1059,8 +1068,8 @@ TrqCmdSpeedlim = max(TrqCmdSpeedlim,(int16_t)0);
 return TrqCmdSpeedlim;
 }
 
-int16_t SpeedLimNeg(int16_t speed_min, int16_t speed_meas, uint8_t K_Ctrl){
-
+int16_t SpeedLimNeg(int16_t speed_min, int16_t speed_meas, uint8_t K_Ctrl)
+{
 int16_t SpeedDif = speed_min - speed_meas;
 int16_t TrqCmdSpeedlim = -SPDLIM_TRQOFFSET + SpeedDif * K_Ctrl / (int8_t)10;
 TrqCmdSpeedlim = min(TrqCmdSpeedlim,(int16_t)0);
@@ -1068,6 +1077,16 @@ TrqCmdSpeedlim = max(TrqCmdSpeedlim,(int16_t)TRQCMD_MIN);
 
 return TrqCmdSpeedlim;
 }
+
+int16_t TrqLimStart(int16_t speed_meas, uint8_t K_Ctrl)
+{
+int16_t TrqCmdSpeedlim = TRQSTART_TRQ + abs(speed_meas) * K_Ctrl / (int8_t)10;
+TrqCmdSpeedlim = min(TrqCmdSpeedlim,max((int16_t)TRQCMD_MAX,(int16_t)TRQCMD_MIN));
+TrqCmdSpeedlim = max(TrqCmdSpeedlim,(int16_t)TRQSTART_TRQ);
+
+return TrqCmdSpeedlim;
+}
+
 
 void SerialReport(){
   SerialBT.print("a "); SerialBT.println(acclrt_qlf);
@@ -1244,6 +1263,12 @@ void TorqueControl() {
       else
         SpdCmd = RcRcv_SpdCmd;
       
+      //TrqRequest with StartinTrqLimitation
+      #if defined(TRQSTART_ENABLED)
+        TrqCmd = min(TrqCmd,TrqLimStart(speedAvg_meas, (uint8_t)TRQSTART_K_RAMP));
+        TrqCmd = max(TrqCmd,(int16_t)-TrqLimStart(speedAvg_meas, (uint8_t)TRQSTART_K_RAMP));
+      #endif
+
       //TrqRequest with SpeedLimitation
       #if defined(SPDLIM_ENABLED)
         TrqCmd = min(TrqCmd,SpeedLimPos(SpdCmd, speedAvg_meas, (uint8_t)SPDLIM_K_CTRL));
