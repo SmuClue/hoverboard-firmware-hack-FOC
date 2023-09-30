@@ -35,7 +35,7 @@
 #define ACCLRT_GND_PIN 14        //GND Supply for Accelerator
 #define ACCLRT_ADC_MIN 1100       //MIN-Value of ADC over wich TrqRequest starts
 #define ACCLRT_ADC_MIN_DIAG 900  //MIN-Threshold of ADC for Diagnosis
-#define ACCLRT_ADC_MAX 2750       //MIN-Value of ADC over wich TrqRequest starts
+#define ACCLRT_ADC_MAX 2800       //MIN-Value of ADC over wich TrqRequest starts
 #define ACCLRT_ADC_MAX_DIAG 3000  //MIN-Threshold of ADC for Diagnosis
 #define ACCLRT_ADC_GRD_DIAG 800   //MAX-Absolute change of ADC over 1 Cycle for Diagnosis
 #define ACCLRT_ERRCNTMAX   5          //max number of Error-Counter bevore Qlf is set to invalid
@@ -136,10 +136,10 @@ int16_t SpdCmd = 0;
 
 uint8_t Fahrfreigabe = 0;
 
-
-int16_t acclrt_adc = 0;     //raw ADC-Value
-int16_t acclrt_adc_old = 0; //ADC-Value last cycle
-int16_t acclrt_adc_lastvalid = 0; //last valid ADC-Value
+uint16_t acclrt_adc_raw[4] = {0,0,0,0};
+uint16_t acclrt_adc = 0;     //filtered ADC-Value
+uint16_t acclrt_adc_old = 0; //filtered ADC-Value last cycle
+uint16_t acclrt_adc_lastvalid = 0; //last valid ADC-Value
 uint8_t acclrt_qlf = 0;     //0 = unplausible; 1 = plausible; 2 = timeout
 uint8_t acclrt_errCnt = 0;      //Error cycle counter
 int16_t acclrt_TrqCmd = 0;  //TrqCommand derived from acclrt [ACCLRT_TRQCMD_MIN; ACCLRT_TRQCMD_MAX]
@@ -824,7 +824,12 @@ void RcRcvCh3ReadPlaus() {
 
 void AcclrtReadPlaus() {
   acclrt_adc_old = acclrt_adc;
-  acclrt_adc = analogRead(ACCLRT_SENS_PIN);
+  for (uint8_t i = 0; i<3; i++)
+  {
+    acclrt_adc_raw[i] = acclrt_adc_raw[i+1];
+  }
+  acclrt_adc_raw[3] = analogRead(ACCLRT_SENS_PIN);
+  acclrt_adc = (acclrt_adc_raw[0] + acclrt_adc_raw[1] + acclrt_adc_raw[2] + acclrt_adc_raw[3])/4;
 
   //Check min/max-grenzen und min/max gradient
   if ((acclrt_adc > ACCLRT_ADC_MAX_DIAG) || (acclrt_adc < ACCLRT_ADC_MIN_DIAG) || (abs(acclrt_adc - acclrt_adc_old) > ACCLRT_ADC_GRD_DIAG))
@@ -859,7 +864,7 @@ void AcclrtTrqCmd() {
   if (acclrt_qlf == 0) {
     acclrt_TrqCmd = ACCLRT_TRQCMD_MIN;
   } else {
-    int16_t acclrt_lim = max(min(acclrt_adc, (int16_t)ACCLRT_ADC_MAX), (int16_t)ACCLRT_ADC_MIN);  //limit acclrt ADC Value to Min/Max-Values
+    uint16_t acclrt_lim = max(min(acclrt_adc, (uint16_t)ACCLRT_ADC_MAX), (uint16_t)ACCLRT_ADC_MIN);  //limit acclrt ADC Value to Min/Max-Values
 
     acclrt_TrqCmd = (int16_t)((((int32_t)acclrt_lim - ACCLRT_ADC_MIN) * (ACCLRT_TRQCMD_MAX - ACCLRT_TRQCMD_MIN)) / (ACCLRT_ADC_MAX - ACCLRT_ADC_MIN) + ACCLRT_TRQCMD_MIN);
   }
@@ -1118,7 +1123,11 @@ void DisplayReport(){
 
 void TorqueControl() {
   AcclrtReadPlaus();
-  // Serial.print("adc:");  Serial.println(acclrt_adc);
+  // Serial.print("adc:");  Serial.println(acclrt_adc);  
+  // Serial.print("adc0:");  Serial.println(acclrt_adc_raw[0]);
+  // Serial.print("adc1:");  Serial.println(acclrt_adc_raw[1]);
+  // Serial.print("adc2:");  Serial.println(acclrt_adc_raw[2]);
+  // Serial.print("adc3:");  Serial.println(acclrt_adc_raw[3]);
   // Serial.print(",acQlf:");  Serial.print(acclrt_qlf);
   // Serial.print(",acEC:");  Serial.print(acclrt_errCnt);
 
