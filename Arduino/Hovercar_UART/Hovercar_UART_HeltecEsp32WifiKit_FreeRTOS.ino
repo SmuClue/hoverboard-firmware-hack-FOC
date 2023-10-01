@@ -15,7 +15,7 @@
 
 //LV Battery Voltages
 #define UBATLV100P 8.4
-#define UBATLV0P 6.8
+#define UBATLV0P 7.2
 
 // UART
 #define HOVER_SERIAL_BAUD 115200  // [-] Baud rate for Serial1 (used to communicate with the hoverboard)
@@ -76,11 +76,11 @@
 #define RCRCV_CH2_TD_ZERO 1500          //Middle/Zero/RC-Off Duty-Time in micros
 #define RCRCV_CH2_TD_MAX  1950          //Max Duty-Time in micros
 #define RCRCV_CH2_TD_DEADBAND 40        //Deadband Duty-Time around TD_ZERO in micros
-#define RCRCV_CH2_TD_MAX_DIAG  2200     //Max Duty-Time in micros plausible
-#define RCRCV_CH2_TD_MIN_DIAG  800      //Min Duty-Time in micros plausible 
-#define RCRCV_CH2_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
-#define RCRCV_CH2_TIMEOUT     60        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
-#define RCRCV_CH2_ERRCNTMAX   5          //max number of Error-Counter bevore Qlf is set to invalid
+#define RCRCV_CH2_TD_MAX_DIAG  2300     //Max Duty-Time in micros plausible
+#define RCRCV_CH2_TD_MIN_DIAG  700      //Min Duty-Time in micros plausible 
+#define RCRCV_CH2_TD_GRD_DIAG  2000      //Max Gradient Duty-Time in micros plausible
+#define RCRCV_CH2_TIMEOUT     100        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
+#define RCRCV_CH2_ERRCNTMAX   10          //max number of Error-Counter bevore Qlf is set to invalid
 #define RCRCV_TRQCMD_MAX    TRQCMD_MAX        //Command @ RCRCV_CH2_TD_MAX (Max = 1000)
 #define RCRCV_TRQCMD_ZERO   0           //Command @ RCRCV_CH2_TD_ZERO +- RCRCV_CH2_TD_DEADBAND
 #define RCRCV_TRQCMD_MIN    TRQCMD_MIN        //Command @ RCRCV_CH2_TD_MIN
@@ -134,7 +134,7 @@
 #define RCRCV_CH5_ERRCNTMAX   RCRCV_CH2_ERRCNTMAX          //max number of Error-Counter bevore Qlf is set to invalid
 #define RCRCV_CH5_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
 #define RCRCV_SPDCMD_MIN    50       //Command @ RCRCV_CH5_TD_MIN
-#define RCRCV_SPDCMD_MAX    700    //Command @ RCRCV_CH5_TD_MAX
+#define RCRCV_SPDCMD_MAX    800    //Command @ RCRCV_CH5_TD_MAX
 
 // #define DEBUG_RX                        // [-] Debug received data. Prints all bytes to serial (comment-out to disable)
 // #define DEBUG_TX
