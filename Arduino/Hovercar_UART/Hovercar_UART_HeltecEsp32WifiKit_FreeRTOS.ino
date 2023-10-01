@@ -1257,9 +1257,10 @@ void TorqueControl() {
       
       // Speedcommand
       SpdCmd = 0;
+      int16_t SpdCmdReverse = min((int16_t)SPDCMD_REVERSE,RcRcv_SpdCmd);
       // reverse speedlim
-      if (speedAvg_meas < -(SPDCMD_REVERSE - 20))
-        SpdCmd = SPDCMD_REVERSE;
+      if (speedAvg_meas < -(SpdCmdReverse - 20))
+        SpdCmd = SpdCmdReverse;
       else
         SpdCmd = RcRcv_SpdCmd;
       
@@ -1271,8 +1272,8 @@ void TorqueControl() {
 
       //TrqRequest with SpeedLimitation
       #if defined(SPDLIM_ENABLED)
-        TrqCmd = min(TrqCmd,SpeedLimPos(SpdCmd, speedAvg_meas, (uint8_t)SPDLIM_K_CTRL));
-        TrqCmd = max(TrqCmd,SpeedLimNeg(-SPDCMD_REVERSE, speedAvg_meas, (uint8_t)SPDLIM_K_CTRL));
+        TrqCmd = min(TrqCmd,SpeedLimPos(RcRcv_SpdCmd, speedAvg_meas, (uint8_t)SPDLIM_K_CTRL));
+        TrqCmd = max(TrqCmd,SpeedLimNeg(-SpdCmdReverse, speedAvg_meas, (uint8_t)SPDLIM_K_CTRL));
       #endif
       
 
