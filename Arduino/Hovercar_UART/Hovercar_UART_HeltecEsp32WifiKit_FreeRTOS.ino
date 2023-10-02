@@ -78,26 +78,30 @@
 #define RCRCV_CH2_TD_DEADBAND 40        //Deadband Duty-Time around TD_ZERO in micros
 #define RCRCV_CH2_TD_MAX_DIAG  2300     //Max Duty-Time in micros plausible
 #define RCRCV_CH2_TD_MIN_DIAG  700      //Min Duty-Time in micros plausible 
-#define RCRCV_CH2_TD_GRD_DIAG  2000      //Max Gradient Duty-Time in micros plausible
-#define RCRCV_CH2_TIMEOUT     100        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
-#define RCRCV_CH2_ERRCNTMAX   10          //max number of Error-Counter bevore Qlf is set to invalid
+#define RCRCV_CH2_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
+#define RCRCV_CH2_TIMEOUT     80        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
+#define RCRCV_CH2_ERRCNTMAX   8          //max number of Error-Counter bevore Qlf is set to invalid
 #define RCRCV_TRQCMD_MAX    TRQCMD_MAX        //Command @ RCRCV_CH2_TD_MAX (Max = 1000)
 #define RCRCV_TRQCMD_ZERO   0           //Command @ RCRCV_CH2_TD_ZERO +- RCRCV_CH2_TD_DEADBAND
 #define RCRCV_TRQCMD_MIN    TRQCMD_MIN        //Command @ RCRCV_CH2_TD_MIN
 
 //CH1 RC Steering
-#define RCRCV_CH1_TD_MIN  1000           //Min Duty-Time in micros
+#define RCRCV_CH1_TD_MIN  1200           //Min Duty-Time in micros 
 #define RCRCV_CH1_TD_ZERO 1500          //Middle/Zero/RC-Off Duty-Time in micros
-#define RCRCV_CH1_TD_MAX  2000          //Max Duty-Time in micros
+#define RCRCV_CH1_TD_MAX  1800          //Max Duty-Time in micros
 #define RCRCV_CH1_TD_DEADBAND 200        //Deadband Duty-Time around TD_ZERO in micros
-#define RCRCV_CH1_TD_MAX_DIAG  RCRCV_CH2_TD_MAX_DIAG     //Max Duty-Time in micros plausible
-#define RCRCV_CH1_TD_MIN_DIAG  RCRCV_CH2_TD_MIN_DIAG      //Min Duty-Time in micros plausible
-#define RCRCV_CH1_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
+#define RCRCV_CH1_TD_MAX_DIAG  RCRCV_CH2_TD_MAX_DIAG+100     //Max Duty-Time in micros plausible
+#define RCRCV_CH1_TD_MIN_DIAG  RCRCV_CH2_TD_MIN_DIAG-100      //Min Duty-Time in micros plausible
+#define RCRCV_CH1_TD_GRD_DIAG  2000      //Max Gradient Duty-Time in micros plausible
 #define RCRCV_CH1_TIMEOUT     RCRCV_CH2_TIMEOUT        //if last PWM Interrupt is longer ago than this -> Timeout. Time in milis and uint16_t (so max Value is 65535)
 #define RCRCV_CH1_ERRCNTMAX   RCRCV_CH2_ERRCNTMAX          //max number of Error-Counter bevore Qlf is set to invalid
 #define RCRCV_STRCMD_MAX    1         //Command @ RCRCV_CH1_TD_MAX (z.B. 500)
 #define RCRCV_STRCMD_ZERO   0           //Command @ RCRCV_CH1_TD_ZERO +- RCRCV_CH1_TD_DEADBAND
 #define RCRCV_STRCMD_MIN    -1        //Command @ RCRCV_CH1_TD_MIN (z.B. - 500)
+//CH1 RC BT On/Off
+#define RCRCV_CH1_TD_BT_OFF 1100      //below this TD BT is turned off
+#define RCRCV_CH1_TD_BT_ON  1900      //above this TD BT is turned on
+#define BT_CNT_THRS         50        //Loop-Counter für Entprellung BT On/Off Befehl
 
 //CH3 RC Pushbutton (Emergency off)
 #define RCRCV_CH3_TD_OFF 1290           //Push Button Off Duty-Time in micros
@@ -150,6 +154,9 @@ int16_t TrqCmd = 0;
 int16_t SpdCmd = 0;
 
 uint8_t Fahrfreigabe = 0;
+
+uint8_t StatusBtOn = 1;
+uint8_t CntBTOnOff = 0;
 
 uint16_t acclrt_adc_raw[4] = {0,0,0,0};
 uint16_t acclrt_adc = 0;     //filtered ADC-Value
@@ -283,7 +290,7 @@ void setup() {
   
   //Serials
   Serial.begin(SERIAL_BAUD);  //USB Serial
-  Serial.println("Hoverboard Serial v1.0");
+  Serial.println("Hoverboard Serial v1.0");  
 
   SerialBT.begin("HovercarBT");
 
@@ -937,6 +944,36 @@ void RcRcvStrCmd() {
   }
 }
 
+void RcRcvCh1BtCmd() {
+  if (RcRcvCh1_qlf == 1) {
+    if (RcRcvCh1_TDuty >= RCRCV_CH1_TD_BT_ON)
+    {
+      //BT On      
+      if (CntBTOnOff >= BT_CNT_THRS)
+      {
+        SerialBT.begin("HovercarBT");
+        StatusBtOn = 1;
+      }
+      else
+        CntBTOnOff++;
+      
+    }        
+    else if (RcRcvCh1_TDuty <= RCRCV_CH1_TD_BT_OFF)
+    {
+      //BT On      
+      if (CntBTOnOff >= BT_CNT_THRS)
+      {
+        SerialBT.end();
+        StatusBtOn = 0;
+      }
+      else
+        CntBTOnOff++;
+    }  
+    else if (CntBTOnOff > 0)
+      CntBTOnOff--;
+  }
+}
+
 void RcRcvSpdCmd() {
   if (RcRcvCh5_qlf == 0) {
     RcRcv_SpdCmd = RCRCV_SPDCMD_MIN;
@@ -1089,38 +1126,41 @@ return TrqCmdSpeedlim;
 
 
 void SerialReport(){
-  SerialBT.print("a "); SerialBT.println(acclrt_qlf);
-  SerialBT.print("b "); SerialBT.println(RcRcvCh1_qlf);
-  SerialBT.print("c "); SerialBT.println(RcRcvCh2_qlf);
-  SerialBT.print("d "); SerialBT.println(RcRcvCh3_qlf);
-  SerialBT.print("e "); SerialBT.println(RcRcvCh4_qlf);
-  SerialBT.print("f "); SerialBT.println(RcRcvCh5_qlf);
-  SerialBT.print("g "); SerialBT.println(UART_qlf);
-  SerialBT.print("h "); SerialBT.println(Feedback.batVoltage);
-  SerialBT.print("i "); SerialBT.println(Feedback.dc_curr);
-  SerialBT.print("j "); SerialBT.println(Feedback.boardTemp);
-  SerialBT.print("k "); SerialBT.println(speedAvg_meas);
-  SerialBT.print("l "); SerialBT.println(RcRcv_SpdCmd);
-  SerialBT.print("m "); SerialBT.println(RcRcv_StrCmd);
-  SerialBT.print("n "); SerialBT.println(RcRcv_CtrlMod);
-  SerialBT.print("o "); SerialBT.println(acclrt_TrqCmd);
-  SerialBT.print("p "); SerialBT.println(RcRcv_TrqCmd);
-  SerialBT.print("q "); SerialBT.println(TrqCmd);
-  SerialBT.print("r "); SerialBT.println(SpdCmd);
-  SerialBT.print("s "); SerialBT.println(Fahrfreigabe);
-  SerialBT.print("t "); SerialBT.println(Feedback.pwml);
-  SerialBT.print("u "); SerialBT.println(Feedback.pwmr);  
-  SerialBT.print("v "); SerialBT.println(acclrt_adc);
-  SerialBT.print("w "); SerialBT.println(FlagLastQlfNotOk);
-  SerialBT.print("x "); SerialBT.println(RcRcvCh2_TDuty);
-  SerialBT.print("y "); SerialBT.println(Feedback.speedR_meas);
-  SerialBT.print("z "); SerialBT.println(Feedback.speedL_meas);
-
-  if (StTorqueControlRunning)
+  if (StatusBtOn)
   {
-    StTorqueControlRunning = 0;
-    SerialBT.println("Z");
-  }
+    SerialBT.print("a "); SerialBT.println(acclrt_qlf);
+    SerialBT.print("b "); SerialBT.println(RcRcvCh1_qlf);
+    SerialBT.print("c "); SerialBT.println(RcRcvCh2_qlf);
+    SerialBT.print("d "); SerialBT.println(RcRcvCh3_qlf);
+    SerialBT.print("e "); SerialBT.println(RcRcvCh4_qlf);
+    SerialBT.print("f "); SerialBT.println(RcRcvCh5_qlf);
+    SerialBT.print("g "); SerialBT.println(UART_qlf);
+    SerialBT.print("h "); SerialBT.println(Feedback.batVoltage);
+    SerialBT.print("i "); SerialBT.println(Feedback.dc_curr);
+    SerialBT.print("j "); SerialBT.println(Feedback.boardTemp);
+    SerialBT.print("k "); SerialBT.println(speedAvg_meas);
+    SerialBT.print("l "); SerialBT.println(RcRcv_SpdCmd);
+    SerialBT.print("m "); SerialBT.println(RcRcv_StrCmd);
+    SerialBT.print("n "); SerialBT.println(RcRcv_CtrlMod);
+    SerialBT.print("o "); SerialBT.println(acclrt_TrqCmd);
+    SerialBT.print("p "); SerialBT.println(RcRcv_TrqCmd);
+    SerialBT.print("q "); SerialBT.println(TrqCmd);
+    SerialBT.print("r "); SerialBT.println(SpdCmd);
+    SerialBT.print("s "); SerialBT.println(Fahrfreigabe);
+    SerialBT.print("t "); SerialBT.println(Feedback.pwml);
+    SerialBT.print("u "); SerialBT.println(Feedback.pwmr);  
+    SerialBT.print("v "); SerialBT.println(acclrt_adc);
+    SerialBT.print("w "); SerialBT.println(FlagLastQlfNotOk);
+    SerialBT.print("x "); SerialBT.println(RcRcvCh2_TDuty);
+    SerialBT.print("y "); SerialBT.println(Feedback.speedR_meas);
+    SerialBT.print("z "); SerialBT.println(Feedback.speedL_meas);
+
+    if (StTorqueControlRunning)
+    {
+      StTorqueControlRunning = 0;
+      SerialBT.println("Z");
+    }
+  }  
 }
 
 void DisplayReport(){
@@ -1147,6 +1187,11 @@ void DisplayReport(){
     Heltec.display->drawString(0,10,"RcCh5Qlf=" + String(RcRcvCh5_qlf));
   else
     Heltec.display->drawString(0,10,"RcCh1-5Qlf=" + String(RcRcvCh5_qlf));
+  
+  Heltec.display->setTextAlignment(TEXT_ALIGN_RIGHT);
+  if (StatusBtOn)
+    Heltec.display->drawString(128,10,"BT");
+  Heltec.display->setTextAlignment(TEXT_ALIGN_LEFT);
 
 
   //Line 3 -4: display HVbat status
@@ -1195,12 +1240,15 @@ void TorqueControl() {
   // Serial.print(",Rc3Qlf:");  Serial.print(RcRcvCh3_qlf);
 
   RcRcvCh1ReadPlaus();
-  //Serial.print(",TRc1:");  Serial.println(RcRcvCh1_TDuty);
+  // Serial.print(",TRc1:");  Serial.println(RcRcvCh1_TDuty);
   //Serial.print(",Rc1Qlf:");  Serial.println(RcRcvCh1_qlf);
-
 
   ReceiveUARTPlaus();
   // Serial.print(",Savg:");  Serial.print(speedAvg_meas);
+
+  RcRcvCh1BtCmd();
+  // Serial.print("StatusBtOn:");  Serial.println(StatusBtOn);
+  // Serial.print("BtCnt:");  Serial.println(CntBTOnOff);
 
   //Check if all QLF ok
   if  (
