@@ -526,11 +526,12 @@ void RcRcvCh2ReadPlaus() {
   {
     RcRcvCh2_TDuty_old = RcRcvCh2_TDuty;
     RcRcvCh2_TDuty = tMicrosRcRcvCh2Pwm2 - tMicrosRcRcvCh2Pwm1;
+
     RcRcvCh2NewData = 0;
 
-    Serial.print(",TRc2:");  Serial.print(RcRcvCh2_TDuty);
-    Serial.print(",T2Rc2:");  Serial.print(tMicrosRcRcvCh2Pwm2);
-    Serial.print(",T1Rc2:");  Serial.print(tMicrosRcRcvCh2Pwm1);
+    // Serial.print(",TRc2:");  Serial.print(RcRcvCh2_TDuty);
+    // Serial.print(",T2Rc2:");  Serial.print(tMicrosRcRcvCh2Pwm2);
+    // Serial.print(",T1Rc2:");  Serial.print(tMicrosRcRcvCh2Pwm1);
   }
   
   //Check min/max-grenzen und min/max gradient
@@ -1134,7 +1135,8 @@ return TrqCmdSpeedlim;
 
 
 void SerialReport(){
-  if (StatusBtOn)
+  // Serial.print("BTClnt: "); Serial.println(SerialBT.hasClient());
+  if ((StatusBtOn) && (SerialBT.hasClient() > 0))
   {
     SerialBT.print("a "); SerialBT.println(acclrt_qlf);
     SerialBT.print("b "); SerialBT.println(RcRcvCh1_qlf);
