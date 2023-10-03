@@ -377,7 +377,6 @@ void ARDUINO_ISR_ATTR IsrRcRcvCh2(){
   else
   {
     tMicrosRcRcvCh2Pwm1 = (uint16_t)micros();
-    RcRcvCh2NewData = 0;
   }    
 }
 
@@ -391,7 +390,6 @@ void ARDUINO_ISR_ATTR IsrRcRcvCh1(){
   else
   {
     tMicrosRcRcvCh1Pwm1 = (uint16_t)micros();
-    RcRcvCh1NewData = 0;
   }    
 }
 
@@ -405,7 +403,6 @@ void ARDUINO_ISR_ATTR IsrRcRcvCh5(){
   else
   {
     tMicrosRcRcvCh5Pwm1 = (uint16_t)micros();
-    RcRcvCh5NewData = 0;
   }    
 }
 
@@ -419,7 +416,6 @@ void ARDUINO_ISR_ATTR IsrRcRcvCh4(){
   else
   {
     tMicrosRcRcvCh4Pwm1 = (uint16_t)micros();
-    RcRcvCh4NewData = 0;
   }    
 }
 
@@ -433,7 +429,6 @@ void ARDUINO_ISR_ATTR IsrRcRcvCh3(){
   else
   {
     tMicrosRcRcvCh3Pwm1 = (uint16_t)micros();
-    RcRcvCh3NewData = 0;
   }    
 }
 
@@ -531,6 +526,11 @@ void RcRcvCh2ReadPlaus() {
   {
     RcRcvCh2_TDuty_old = RcRcvCh2_TDuty;
     RcRcvCh2_TDuty = tMicrosRcRcvCh2Pwm2 - tMicrosRcRcvCh2Pwm1;
+    RcRcvCh2NewData = 0;
+
+    Serial.print(",TRc2:");  Serial.print(RcRcvCh2_TDuty);
+    Serial.print(",T2Rc2:");  Serial.print(tMicrosRcRcvCh2Pwm2);
+    Serial.print(",T1Rc2:");  Serial.print(tMicrosRcRcvCh2Pwm1);
   }
   
   //Check min/max-grenzen und min/max gradient
@@ -581,7 +581,7 @@ void RcRcvCh2ReadPlaus() {
     RcRcvCh2_qlf = 1;
     RcRcvCh2_errCnt = 0;
   }
-    
+  // Serial.print(",TRc2Lv:");  Serial.print(RcRcvCh2_TDuty_lastvalid);  
 }
 
 void RcRcvCh1ReadPlaus() {
@@ -589,8 +589,10 @@ void RcRcvCh1ReadPlaus() {
   {
     RcRcvCh1_TDuty_old = RcRcvCh1_TDuty;
     RcRcvCh1_TDuty = tMicrosRcRcvCh1Pwm2 - tMicrosRcRcvCh1Pwm1;
+    
+    RcRcvCh1NewData = 0;
   }
-
+  // Serial.print(",TRc1:");  Serial.print(RcRcvCh1_TDuty);
   //Check min/max-grenzen und min/max gradient
   if ((RcRcvCh1_TDuty > RCRCV_CH1_TD_MAX_DIAG) || (RcRcvCh1_TDuty < RCRCV_CH1_TD_MIN_DIAG) || (abs(RcRcvCh1_TDuty - RcRcvCh1_TDuty_old) > RCRCV_CH1_TD_GRD_DIAG))
   {
@@ -646,6 +648,8 @@ void RcRcvCh5ReadPlaus() {
   {
     RcRcvCh5_TDuty_old = RcRcvCh5_TDuty;
     RcRcvCh5_TDuty = tMicrosRcRcvCh5Pwm2 - tMicrosRcRcvCh5Pwm1;
+    
+    RcRcvCh5NewData = 0;
   }
 
   //Check min/max-grenzen und min/max gradient
@@ -700,6 +704,8 @@ void RcRcvCh4ReadPlaus() {
   {
     RcRcvCh4_TDuty_old = RcRcvCh4_TDuty;
     RcRcvCh4_TDuty = tMicrosRcRcvCh4Pwm2 - tMicrosRcRcvCh4Pwm1;
+    
+    RcRcvCh4NewData = 0;
   }
 
   //Check min/max-grenzen und min/max gradient
@@ -774,6 +780,8 @@ void RcRcvCh3ReadPlaus() {
   {
     RcRcvCh3_TDuty_old = RcRcvCh3_TDuty;
     RcRcvCh3_TDuty = tMicrosRcRcvCh3Pwm2 - tMicrosRcRcvCh3Pwm1;
+    
+    RcRcvCh3NewData = 0;
   }
 
   //Check min/max-grenzen und min/max gradient
@@ -1357,7 +1365,7 @@ void TorqueControl() {
 
   //Send Heartbeat to communicate task was running
   StTorqueControlRunning = 1;
-  Serial.println("Z");
+  Serial.print("Z"); Serial.println((uint8_t)millis());
 }
 
 void TaskPrioLow_10ms(void *pvParameters) {
