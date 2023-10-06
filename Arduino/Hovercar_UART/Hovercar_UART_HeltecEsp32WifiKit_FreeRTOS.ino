@@ -176,6 +176,8 @@ int16_t RcRcv_TrqCmd = 0;       //TrqCommand derived from RcRcvCh2_TDuty
 
 uint16_t tMicrosRcRcvCh2Pwm2 = 2;
 uint16_t tMicrosRcRcvCh2Pwm1 = 1;
+uint16_t tMicrosRcRcvCh2Pwm2old = 2;
+uint16_t tMicrosRcRcvCh2Pwm1old = 1;
 uint16_t tMilisRcRcvCh2Pwm = 0;
 uint8_t RcRcvCh2NewData = 0;
 
@@ -279,6 +281,92 @@ UBaseType_t uxHighWaterMark_TaskPrioLow_10ms;
 UBaseType_t uxHighWaterMark_TaskPrioLow_500ms;
 UBaseType_t uxHighWaterMark_TaskPrioLow_1ms;
 
+
+// ########################## ISRs ##########################
+void IRAM_ATTR IsrRcRcvCh2(){
+  uint16_t tMicros = (uint16_t)micros();
+  if ((digitalRead(RCRCV_CH2_PIN)) == 0)
+  {
+    tMicrosRcRcvCh2Pwm2 = tMicros;
+    tMilisRcRcvCh2Pwm = (uint16_t)millis();
+    RcRcvCh2NewData = 1;
+  }
+  else
+  {
+    tMicrosRcRcvCh2Pwm1 = tMicros;
+  }    
+}
+
+void IRAM_ATTR IsrRcRcvCh1(){
+  uint16_t tMicros = (uint16_t)micros();
+  if ((digitalRead(RCRCV_CH1_PIN)) == 0)
+  {
+    tMicrosRcRcvCh1Pwm2 = tMicros;
+    tMilisRcRcvCh1Pwm = (uint16_t)millis();
+    RcRcvCh1NewData = 1;
+  }
+  else
+  {
+    tMicrosRcRcvCh1Pwm1 = tMicros;
+  }    
+}
+
+void IRAM_ATTR IsrRcRcvCh5(){
+  uint16_t tMicros = (uint16_t)micros();
+  if ((digitalRead(RCRCV_CH5_PIN)) == 0)
+  {
+    tMicrosRcRcvCh5Pwm2 = tMicros;
+    tMilisRcRcvCh5Pwm = (uint16_t)millis();
+    RcRcvCh5NewData = 1;
+  }
+  else
+  {
+    tMicrosRcRcvCh5Pwm1 = tMicros;
+  }    
+}
+
+void IRAM_ATTR IsrRcRcvCh4(){
+  uint16_t tMicros = (uint16_t)micros();
+  if ((digitalRead(RCRCV_CH4_PIN)) == 0)
+  {
+    tMicrosRcRcvCh4Pwm2 = tMicros;
+    tMilisRcRcvCh4Pwm = (uint16_t)millis();
+    RcRcvCh4NewData = 1;
+  }
+  else
+  {
+    tMicrosRcRcvCh4Pwm1 = tMicros;
+  }    
+}
+
+void IRAM_ATTR IsrRcRcvCh3(){
+  uint16_t tMicros = (uint16_t)micros();
+  if ((digitalRead(RCRCV_CH3_PIN)) == 0)
+  {
+    tMicrosRcRcvCh3Pwm2 = tMicros;
+    tMilisRcRcvCh3Pwm = (uint16_t)millis();
+    RcRcvCh3NewData = 1;
+  }
+  else
+  {
+    tMicrosRcRcvCh3Pwm1 = tMicros;
+  }    
+}
+
+// void IRAM_ATTR IsrRcRcvCh6(){
+//   uint16_t tMicros = (uint16_t)micros();
+//   if ((digitalRead(RCRCV_CH6_PIN)) == 0)
+//   {
+//     tMicrosRcRcvCh6Pwm2 = tMicros;
+//     tMilisRcRcvCh6Pwm = (uint16_t)millis();
+//     RcRcvCh6NewData = 1;
+//   }
+//   else
+//   {
+//     tMicrosRcRcvCh6Pwm1 = tMicros;
+//   }    
+// }
+
 // ########################## SETUP ##########################
 void setup() {
   //Heltec(Display)
@@ -319,7 +407,7 @@ void setup() {
   //CH3
   pinMode(RCRCV_CH3_PIN, INPUT_PULLDOWN);
   attachInterrupt(RCRCV_CH3_PIN, IsrRcRcvCh3, CHANGE);
-
+  
   // PINS EncoderSwitch
   pinMode(ENCSWITCH_PIN, OUTPUT);
   digitalWrite(ENCSWITCH_PIN, LOW);   // LOW = Encoders off
@@ -365,71 +453,6 @@ void setup() {
     ,  1  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
     ,  NULL 
     ,  ARDUINO_RUNNING_CORE);
-}
-
-void ARDUINO_ISR_ATTR IsrRcRcvCh2(){
-  if ((digitalRead(RCRCV_CH2_PIN)) == 0)
-  {
-    tMicrosRcRcvCh2Pwm2 = (uint16_t)micros();
-    tMilisRcRcvCh2Pwm = (uint16_t)millis();
-    RcRcvCh2NewData = 1;
-  }
-  else
-  {
-    tMicrosRcRcvCh2Pwm1 = (uint16_t)micros();
-  }    
-}
-
-void ARDUINO_ISR_ATTR IsrRcRcvCh1(){
-  if ((digitalRead(RCRCV_CH1_PIN)) == 0)
-  {
-    tMicrosRcRcvCh1Pwm2 = (uint16_t)micros();
-    tMilisRcRcvCh1Pwm = (uint16_t)millis();
-    RcRcvCh1NewData = 1;
-  }
-  else
-  {
-    tMicrosRcRcvCh1Pwm1 = (uint16_t)micros();
-  }    
-}
-
-void ARDUINO_ISR_ATTR IsrRcRcvCh5(){
-  if ((digitalRead(RCRCV_CH5_PIN)) == 0)
-  {
-    tMicrosRcRcvCh5Pwm2 = (uint16_t)micros();
-    tMilisRcRcvCh5Pwm = (uint16_t)millis();
-    RcRcvCh5NewData = 1;
-  }
-  else
-  {
-    tMicrosRcRcvCh5Pwm1 = (uint16_t)micros();
-  }    
-}
-
-void ARDUINO_ISR_ATTR IsrRcRcvCh4(){
-  if ((digitalRead(RCRCV_CH4_PIN)) == 0)
-  {
-    tMicrosRcRcvCh4Pwm2 = (uint16_t)micros();
-    tMilisRcRcvCh4Pwm = (uint16_t)millis();
-    RcRcvCh4NewData = 1;
-  }
-  else
-  {
-    tMicrosRcRcvCh4Pwm1 = (uint16_t)micros();
-  }    
-}
-
-void ARDUINO_ISR_ATTR IsrRcRcvCh3(){
-  if ((digitalRead(RCRCV_CH3_PIN)) == 0)
-  {
-    tMicrosRcRcvCh3Pwm2 = (uint16_t)micros();
-    tMilisRcRcvCh3Pwm = (uint16_t)millis();
-    RcRcvCh3NewData = 1;
-  }
-  else
-  {
-    tMicrosRcRcvCh3Pwm1 = (uint16_t)micros();
-  }    
 }
 
 void SendCommand(int16_t SteerCommand, int16_t TrqCommand, int16_t nmaxCommand) {
@@ -529,9 +552,14 @@ void RcRcvCh2ReadPlaus() {
 
     RcRcvCh2NewData = 0;
 
-    // Serial.print(",TRc2:");  Serial.print(RcRcvCh2_TDuty);
+    Serial.print(",TRc2:");  Serial.print(RcRcvCh2_TDuty);
+    Serial.print(",TRc2_D2:");  Serial.print((uint16_t)(tMicrosRcRcvCh2Pwm2 - tMicrosRcRcvCh2Pwm2old));
+    Serial.print(",TRc2_D1:");  Serial.print((uint16_t)(tMicrosRcRcvCh2Pwm1 - tMicrosRcRcvCh2Pwm1old));
     // Serial.print(",T2Rc2:");  Serial.print(tMicrosRcRcvCh2Pwm2);
     // Serial.print(",T1Rc2:");  Serial.print(tMicrosRcRcvCh2Pwm1);
+
+    tMicrosRcRcvCh2Pwm2old = tMicrosRcRcvCh2Pwm2;
+    tMicrosRcRcvCh2Pwm1old = tMicrosRcRcvCh2Pwm1;
   }
   
   //Check min/max-grenzen und min/max gradient
@@ -1164,6 +1192,7 @@ void SerialReport(){
     SerialBT.print("x "); SerialBT.println(RcRcvCh2_TDuty);
     SerialBT.print("y "); SerialBT.println(Feedback.speedR_meas);
     SerialBT.print("z "); SerialBT.println(Feedback.speedL_meas);
+    SerialBT.print("A "); SerialBT.println((uint8_t)millis());
 
     if (StTorqueControlRunning)
     {
