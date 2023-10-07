@@ -55,7 +55,7 @@
 #define ACCLRT_ADC_MAX_DIAG 3000  //MIN-Threshold of ADC for Diagnosis
 #define ACCLRT_ADC_GRD_DIAG 800   //MAX-Absolute change of ADC over 1 Cycle for Diagnosis
 #define ACCLRT_ERRCNTMAX   10          //max number of Error-Counter bevore Qlf is set to invalid
-#define ACCLRT_TRQCMD_MAX 600   //Command @ ADC_MAX (Max = 1000)
+#define ACCLRT_TRQCMD_MAX 550   //Command @ ADC_MAX (Max = 1000)
 #define ACCLRT_TRQCMD_MIN 0    //Command @ ADC_MIN
 
 //RC Receiver PINS
@@ -609,8 +609,7 @@ void RcRcvCh2ReadPlaus() {
       RcRcvCh2_qlf = 2;
       tMicrosRcRcvCh2Pwm2 = 2;
       tMicrosRcRcvCh2Pwm1 = 1;
-    }
-      
+    }      
     else
     {
       RcRcvCh2_errCnt++;
@@ -618,10 +617,11 @@ void RcRcvCh2ReadPlaus() {
     }
 
   }
-  else if ((RcRcvCh2_TDuty < (RCRCV_CH2_TD_ZERO + RCRCV_CH2_TD_DEADBAND)) && (RcRcvCh2_TDuty > (RCRCV_CH2_TD_ZERO - RCRCV_CH2_TD_DEADBAND)) && (RcRcvCh2_TDuty_old < (RCRCV_CH2_TD_ZERO + RCRCV_CH2_TD_DEADBAND)) && (RcRcvCh2_TDuty_old > (RCRCV_CH2_TD_ZERO - RCRCV_CH2_TD_DEADBAND)))  //Re-Enable Plausi-Status only when CH2 is in zero position for 2 cycles
+  else //Re-Enable Plausi-Status if no error was found
   {
     RcRcvCh2_qlf = 1;
-    RcRcvCh2_errCnt = 0;
+    if (RcRcvCh2_errCnt > 0)
+      RcRcvCh2_errCnt--;
   }
   // Serial.print(",TRc2Lv:");  Serial.print(RcRcvCh2_TDuty_lastvalid);  
 }
@@ -678,10 +678,11 @@ void RcRcvCh1ReadPlaus() {
     }
 
   }
-  else if ((RcRcvCh1_TDuty < (RCRCV_CH1_TD_ZERO + RCRCV_CH1_TD_DEADBAND)) && (RcRcvCh1_TDuty > (RCRCV_CH1_TD_ZERO - RCRCV_CH1_TD_DEADBAND)) && (RcRcvCh1_TDuty_old < (RCRCV_CH1_TD_ZERO + RCRCV_CH1_TD_DEADBAND)) && (RcRcvCh1_TDuty_old > (RCRCV_CH1_TD_ZERO - RCRCV_CH1_TD_DEADBAND)))  //Re-Enable Plausi-Status only when CH1 is in zero position for 2 cycles
+  else  //Re-Enable Plausi-Status if no error was found
   {
     RcRcvCh1_qlf = 1;
-    RcRcvCh1_errCnt = 0;
+    if (RcRcvCh1_errCnt > 0)
+      RcRcvCh1_errCnt--;
   }
 }
 
@@ -737,7 +738,8 @@ void RcRcvCh5ReadPlaus() {
   else //Re-Enable Plausi-Status if no error was found
   {
     RcRcvCh5_qlf = 1;
-    RcRcvCh5_errCnt = 0;
+    if (RcRcvCh5_errCnt > 0)
+      RcRcvCh5_errCnt--;
   }
 }
 
@@ -750,7 +752,7 @@ void RcRcvCh4ReadPlaus() {
     RcRcvCh4NewData = 0;
   }
 
-  //Check min/max-grenzen und min/max gradient
+  //Check min/max-grenzen
   if ((RcRcvCh4_TDuty > RCRCV_CH4_TD_MAX_DIAG) || (RcRcvCh4_TDuty < RCRCV_CH4_TD_MIN_DIAG))
   {
     
@@ -813,7 +815,8 @@ void RcRcvCh4ReadPlaus() {
   else //Re-Enable Plausi-Status if no error was found
   {
     RcRcvCh4_qlf = 1;
-    RcRcvCh4_errCnt = 0;
+    if (RcRcvCh4_errCnt > 0)
+      RcRcvCh4_errCnt--;
   }
 }
 
@@ -826,7 +829,7 @@ void RcRcvCh3ReadPlaus() {
     RcRcvCh3NewData = 0;
   }
 
-  //Check min/max-grenzen und min/max gradient
+  //Check min/max-grenzen
   if ((RcRcvCh3_TDuty > RCRCV_CH3_TD_MAX_DIAG) || (RcRcvCh3_TDuty < RCRCV_CH3_TD_MIN_DIAG))
   {
     
@@ -890,7 +893,8 @@ void RcRcvCh3ReadPlaus() {
   else //Re-Enable Plausi-Status if no error was found
   {
     RcRcvCh3_qlf = 1;
-    RcRcvCh3_errCnt = 0;
+    if (RcRcvCh3_errCnt > 0)
+      RcRcvCh3_errCnt--;
   }
 }
 
