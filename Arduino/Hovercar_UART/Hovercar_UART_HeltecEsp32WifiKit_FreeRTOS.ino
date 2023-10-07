@@ -394,19 +394,16 @@ void setup() {
   //PINS RCRCV
   //CH2
   pinMode(RCRCV_CH2_PIN, INPUT_PULLDOWN);
-  attachInterrupt(RCRCV_CH2_PIN, IsrRcRcvCh2, CHANGE);
   //CH1
   pinMode(RCRCV_CH1_PIN, INPUT_PULLDOWN);
-  attachInterrupt(RCRCV_CH1_PIN, IsrRcRcvCh1, CHANGE);
   //CH5
   pinMode(RCRCV_CH5_PIN, INPUT_PULLDOWN);
-  attachInterrupt(RCRCV_CH5_PIN, IsrRcRcvCh5, CHANGE);
   //CH4
   pinMode(RCRCV_CH4_PIN, INPUT_PULLDOWN);
-  attachInterrupt(RCRCV_CH4_PIN, IsrRcRcvCh4, CHANGE);
   //CH3
   pinMode(RCRCV_CH3_PIN, INPUT_PULLDOWN);
-  attachInterrupt(RCRCV_CH3_PIN, IsrRcRcvCh3, CHANGE);
+
+  attatchAllInterrupts();
   
   // PINS EncoderSwitch
   pinMode(ENCSWITCH_PIN, OUTPUT);
@@ -543,6 +540,22 @@ void ReceiveUART() {
   incomingBytePrev = incomingByte;
 }
 
+void attatchAllInterrupts(){
+  attachInterrupt(RCRCV_CH2_PIN, IsrRcRcvCh2, CHANGE);
+  attachInterrupt(RCRCV_CH1_PIN, IsrRcRcvCh1, CHANGE);
+  attachInterrupt(RCRCV_CH5_PIN, IsrRcRcvCh5, CHANGE);
+  attachInterrupt(RCRCV_CH4_PIN, IsrRcRcvCh4, CHANGE);
+  attachInterrupt(RCRCV_CH3_PIN, IsrRcRcvCh3, CHANGE);
+}
+
+void detatchAllInterrupts(){
+  detachInterrupt(RCRCV_CH2_PIN);
+  detachInterrupt(RCRCV_CH1_PIN);
+  detachInterrupt(RCRCV_CH5_PIN);
+  detachInterrupt(RCRCV_CH4_PIN);
+  detachInterrupt(RCRCV_CH3_PIN);
+}
+
 void RcRcvCh2ReadPlaus() {
 
   if (RcRcvCh2NewData == 1)
@@ -552,9 +565,9 @@ void RcRcvCh2ReadPlaus() {
 
     RcRcvCh2NewData = 0;
 
-    Serial.print(",TRc2:");  Serial.print(RcRcvCh2_TDuty);
-    Serial.print(",TRc2_D2:");  Serial.print((uint16_t)(tMicrosRcRcvCh2Pwm2 - tMicrosRcRcvCh2Pwm2old));
-    Serial.print(",TRc2_D1:");  Serial.print((uint16_t)(tMicrosRcRcvCh2Pwm1 - tMicrosRcRcvCh2Pwm1old));
+    // Serial.print(",TRc2:");  Serial.print(RcRcvCh2_TDuty);
+    // Serial.print(",TRc2_D2:");  Serial.print((uint16_t)(tMicrosRcRcvCh2Pwm2 - tMicrosRcRcvCh2Pwm2old));
+    // Serial.print(",TRc2_D1:");  Serial.print((uint16_t)(tMicrosRcRcvCh2Pwm1 - tMicrosRcRcvCh2Pwm1old));
     // Serial.print(",T2Rc2:");  Serial.print(tMicrosRcRcvCh2Pwm2);
     // Serial.print(",T1Rc2:");  Serial.print(tMicrosRcRcvCh2Pwm1);
 
@@ -887,7 +900,10 @@ void AcclrtReadPlaus() {
   {
     acclrt_adc_raw[i] = acclrt_adc_raw[i+1];
   }
+  detatchAllInterrupts();     //Work-Around für ESP32 Bug, der bei ADC-Read/Wifi/BT benutzung Interrupts in Pin 36 u. 39 auslösen kann -> Führt zu plötzlichem Rauschen auf RC-RCV TDuty -> Alle Interrupts deaktivieren während ADC-Read
   acclrt_adc_raw[3] = analogRead(ACCLRT_SENS_PIN);
+  attatchAllInterrupts();
+
   acclrt_adc = (acclrt_adc_raw[0] + acclrt_adc_raw[1] + acclrt_adc_raw[2] + acclrt_adc_raw[3])/4;
 
   //Check min/max-grenzen und min/max gradient
