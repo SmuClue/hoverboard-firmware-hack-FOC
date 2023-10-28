@@ -43,7 +43,7 @@
 #define SPDLIM_ENABLED            //if defined Speedlim function is activated on arduino additionally to the one on hoverboard
 #define SPDLIM_K_CTRL 45          //Controller-Stiffnes of SpeedLim (TrqLim = SpeedDif * K_CTRL / 10)
 #define SPDLIM_TRQOFFSET TRQCMD_BRAKEOFFSET      //should match with Hoverboard ELECTRIC_BRAKE_THRES
-#define SPDCMD_REVERSE      150     //Speedlimit when driving reverse
+#define SPDCMD_REVERSE      130     //Speedlimit when driving reverse
 
 // Accelerator ADC
 #define ACCLRT_SUPPLY_PIN 13     //3.3V Supply for Accelerator
@@ -55,7 +55,7 @@
 #define ACCLRT_ADC_MAX_DIAG 3000  //MIN-Threshold of ADC for Diagnosis
 #define ACCLRT_ADC_GRD_DIAG 800   //MAX-Absolute change of ADC over 1 Cycle for Diagnosis
 #define ACCLRT_ERRCNTMAX   10          //max number of Error-Counter bevore Qlf is set to invalid
-#define ACCLRT_TRQCMD_MAX 550   //Command @ ADC_MAX (Max = 1000)
+#define ACCLRT_TRQCMD_MAX_DEFAULT 600   //Command @ ADC_MAX (Max = 1000)
 #define ACCLRT_TRQCMD_MIN 0    //Command @ ADC_MIN
 
 //RC Receiver PINS
@@ -98,6 +98,11 @@
 #define RCRCV_STRCMD_MAX    1         //Command @ RCRCV_CH1_TD_MAX (z.B. 500)
 #define RCRCV_STRCMD_ZERO   0           //Command @ RCRCV_CH1_TD_ZERO +- RCRCV_CH1_TD_DEADBAND
 #define RCRCV_STRCMD_MIN    -1        //Command @ RCRCV_CH1_TD_MIN (z.B. - 500)
+//CH1 acclrt_TrqCmdMax control
+#define RCRCV_CH1_TD_TRQMAXDEC 1100   //below this TD acclrt_TrqCmdMax will be decreased
+#define RCRCV_CH1_TD_TRQMAXINC 1900   //above this TD acclrt_TrqCmdMax will be increased
+#define RCRCV_CH1_TRQMAX_CNT_THRS 10   //Loop-Counter für Entprellung
+#define TRQMAX_STEP 100               //acclrt_TrqCmdMax will be in-/decreased by this step
 //CH1 RC BT On/Off
 #define RCRCV_CH1_TD_BT_OFF 1100      //below this TD BT is turned off
 #define RCRCV_CH1_TD_BT_ON  1900      //above this TD BT is turned on
@@ -158,13 +163,17 @@ uint8_t Fahrfreigabe = 0;
 uint8_t StatusBtOn = 1;
 uint8_t CntBTOnOff = 0;
 
+uint8_t StTrqMaxCmdSet = 0;
+uint8_t CntTrqMaxCmd = 0;
+
 uint16_t acclrt_adc_raw[4] = {0,0,0,0};
 uint16_t acclrt_adc = 0;     //filtered ADC-Value
 uint16_t acclrt_adc_old = 0; //filtered ADC-Value last cycle
 uint16_t acclrt_adc_lastvalid = 0; //last valid ADC-Value
 uint8_t acclrt_qlf = 0;     //0 = unplausible; 1 = plausible; 2 = timeout
 uint8_t acclrt_errCnt = 0;      //Error cycle counter
-int16_t acclrt_TrqCmd = 0;  //TrqCommand derived from acclrt [ACCLRT_TRQCMD_MIN; ACCLRT_TRQCMD_MAX]
+int16_t acclrt_TrqCmd = 0;  //TrqCommand derived from acclrt [ACCLRT_TRQCMD_MIN; acclrt_TrqCmdMax]
+int16_t acclrt_TrqCmdMax = ACCLRT_TRQCMD_MAX_DEFAULT;
 
 //RC Receiver Ch2 Throttle
 int16_t RcRcvCh2_TDuty = 0;       //PWM Dutycylce 
@@ -945,7 +954,7 @@ void AcclrtTrqCmd() {
   } else {
     uint16_t acclrt_lim = max(min(acclrt_adc, (uint16_t)ACCLRT_ADC_MAX), (uint16_t)ACCLRT_ADC_MIN);  //limit acclrt ADC Value to Min/Max-Values
 
-    acclrt_TrqCmd = (int16_t)((((int32_t)acclrt_lim - ACCLRT_ADC_MIN) * (ACCLRT_TRQCMD_MAX - ACCLRT_TRQCMD_MIN)) / (ACCLRT_ADC_MAX - ACCLRT_ADC_MIN) + ACCLRT_TRQCMD_MIN);
+    acclrt_TrqCmd = (int16_t)((((int32_t)acclrt_lim - ACCLRT_ADC_MIN) * (acclrt_TrqCmdMax - ACCLRT_TRQCMD_MIN)) / (ACCLRT_ADC_MAX - ACCLRT_ADC_MIN) + ACCLRT_TRQCMD_MIN);
   }
 }
 
@@ -1028,6 +1037,38 @@ void RcRcvCh1BtCmd() {
     }  
     else if (CntBTOnOff > 0)
       CntBTOnOff--;
+  }
+}
+
+void RcRcvCh1TrqMaxCmd() {
+  if (RcRcvCh1_qlf == 1) {
+    if (RcRcvCh1_TDuty >= RCRCV_CH1_TD_TRQMAXINC)
+    {    
+      if ((CntTrqMaxCmd >= RCRCV_CH1_TRQMAX_CNT_THRS) && (StTrqMaxCmdSet == 0))
+      {
+        acclrt_TrqCmdMax = acclrt_TrqCmdMax + TRQMAX_STEP;
+        acclrt_TrqCmdMax = min(acclrt_TrqCmdMax,(int16_t)TRQCMD_MAX);
+        StTrqMaxCmdSet = 1;
+      }
+      else
+        CntTrqMaxCmd++;
+      
+    }        
+    else if (RcRcvCh1_TDuty <= RCRCV_CH1_TD_TRQMAXDEC)
+    {   
+      if ((CntTrqMaxCmd >= RCRCV_CH1_TRQMAX_CNT_THRS) && (StTrqMaxCmdSet == 0))
+      {
+        acclrt_TrqCmdMax = acclrt_TrqCmdMax - TRQMAX_STEP;
+        acclrt_TrqCmdMax = max(acclrt_TrqCmdMax,(int16_t)TRQCMD_BRAKEOFFSET);
+        StTrqMaxCmdSet = 1;
+      }
+      else
+        CntTrqMaxCmd++;
+    }  
+    else if (CntTrqMaxCmd > 0)
+      CntTrqMaxCmd--;
+    else if (CntTrqMaxCmd == 0)
+      StTrqMaxCmdSet = 0;
   }
 }
 
@@ -1213,6 +1254,7 @@ void SerialReport(){
     SerialBT.print("y "); SerialBT.println(Feedback.speedR_meas);
     SerialBT.print("z "); SerialBT.println(Feedback.speedL_meas);
     SerialBT.print("A "); SerialBT.println((uint8_t)millis());
+    SerialBT.print("B "); SerialBT.println(acclrt_TrqCmdMax);
 
     if (StTorqueControlRunning)
     {
@@ -1247,10 +1289,12 @@ void DisplayReport(){
   else
     Heltec.display->drawString(0,10,"RcCh1-5Qlf=" + String(RcRcvCh5_qlf));
   
-  Heltec.display->setTextAlignment(TEXT_ALIGN_RIGHT);
-  if (StatusBtOn)
-    Heltec.display->drawString(128,10,"BT");
-  Heltec.display->setTextAlignment(TEXT_ALIGN_LEFT);
+  Heltec.display->drawString(64,10,"AcclrtTrq=" + String(min((int16_t)999,acclrt_TrqCmdMax)));
+
+  // Heltec.display->setTextAlignment(TEXT_ALIGN_RIGHT);
+  // if (StatusBtOn)
+  //   Heltec.display->drawString(128,10,"BT");
+  // Heltec.display->setTextAlignment(TEXT_ALIGN_LEFT);
 
 
   //Line 3 -4: display HVbat status
@@ -1305,9 +1349,12 @@ void TorqueControl() {
   ReceiveUARTPlaus();
   // Serial.print(",Savg:");  Serial.print(speedAvg_meas);
 
-  RcRcvCh1BtCmd();
+  //RcRcvCh1BtCmd();
   // Serial.print("StatusBtOn:");  Serial.println(StatusBtOn);
   // Serial.print("BtCnt:");  Serial.println(CntBTOnOff);
+
+  RcRcvCh1TrqMaxCmd();
+
 
   //Check if all QLF ok
   if  (
