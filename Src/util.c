@@ -445,11 +445,6 @@ void beepShort(uint8_t freq) {
     buzzerFreq = 0;
 }
 
-void beep(uint8_t freq) {
-    buzzerCount = 0;  // prevent interraction with beep counter
-    buzzerFreq = freq;
-}
-
 void beepShortMany(uint8_t cnt, int8_t dir) {
     if (dir >= 0) {   // increasing tone
       for(uint8_t i = 2*cnt; i >= 2; i=i-2) {
@@ -870,7 +865,6 @@ void readInputRaw(void) {
         input1[inIdx].raw = commandL.steer;
         input2[inIdx].raw = commandL.speed;
         rtP_Left.n_max = rtP_Right.n_max  = commandL.nmax << 4;
-        beep(commandL.FreqBuzzer);
       #endif
     }
     #endif
@@ -886,7 +880,6 @@ void readInputRaw(void) {
         input1[inIdx].raw = commandR.steer;
         input2[inIdx].raw = commandR.speed;
         rtP_Left.n_max = rtP_Right.n_max  = commandR.nmax << 4;
-        beep(commandR.FreqBuzzer);
       #endif
     }
     #endif
@@ -1282,7 +1275,7 @@ void usart_process_command(SerialCommand *command_in, SerialCommand *command_out
   #else
   uint16_t checksum;
   if (command_in->start == SERIAL_START_FRAME) {
-    checksum = (uint16_t)(command_in->start ^ command_in->steer ^ command_in->speed ^ command_in->nmax ^ command_in->FreqBuzzer);
+    checksum = (uint16_t)(command_in->start ^ command_in->steer ^ command_in->speed ^ command_in->nmax);
     if (command_in->checksum == checksum) {
       *command_out = *command_in;
       if (command_in->nmax == SERIAL_NMAX_CMD_OPEN_MODE)    // go into open_mode control to shut off motors
