@@ -40,6 +40,7 @@
       int16_t   steer;
       int16_t   speed;
       int16_t   nmax;
+      uint8_t   FreqBuzzer;
       uint16_t  checksum;
     } SerialCommand;
   #endif
@@ -80,6 +81,7 @@ void beepCount(uint8_t cnt, uint8_t freq, uint8_t pattern);
 void beepLong(uint8_t freq);
 void beepShort(uint8_t freq);
 void beepShortMany(uint8_t cnt, int8_t dir);
+void beep(uint8_t freq);
 void calcAvgSpeed(void);
 void adcCalibLim(void);
 void updateCurSpdLim(void);

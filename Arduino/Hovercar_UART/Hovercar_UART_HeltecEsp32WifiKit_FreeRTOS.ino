@@ -158,6 +158,8 @@ byte incomingBytePrev;
 int16_t TrqCmd = 0;
 int16_t SpdCmd = 0;
 
+uint8_t TBuzzerCmd = 0;  // Buzzer-Command -> Mapped to FreqBuzzer
+
 uint8_t Fahrfreigabe = 0;
 
 uint8_t StatusBtOn = 1;
@@ -259,6 +261,7 @@ typedef struct {
   int16_t steer;
   int16_t torque;
   int16_t nmax;
+  uint8_t FreqBuzzer;
   uint16_t checksum;
 } SerialCommand;
 SerialCommand Command;
@@ -461,13 +464,14 @@ void setup() {
     ,  ARDUINO_RUNNING_CORE);
 }
 
-void SendCommand(int16_t SteerCommand, int16_t TrqCommand, int16_t nmaxCommand) {
+void SendCommand(int16_t SteerCommand, int16_t TrqCommand, int16_t nmaxCommand, uint8_t FreqBuzzerCommand) {
   // Create command
   Command.start = (uint16_t)START_FRAME;
   Command.steer = (int16_t)SteerCommand;
   Command.torque = (int16_t)TrqCommand;
   Command.nmax = (int16_t)nmaxCommand;
-  Command.checksum = (uint16_t)(Command.start ^ Command.steer ^ Command.torque ^ Command.nmax);
+  Command.FreqBuzzer = (uint8_t)FreqBuzzerCommand;
+  Command.checksum = (uint16_t)(Command.start ^ Command.steer ^ Command.torque ^ Command.nmax ^ Command.FreqBuzzer);
 
   // Write to Serial
   Serial1.write((uint8_t *)&Command, sizeof(Command));
@@ -478,7 +482,7 @@ void SendCommand(int16_t SteerCommand, int16_t TrqCommand, int16_t nmaxCommand) 
 }
 
 void SendCommandSafeState(){
-  SendCommand(0, 0, HOVER_SERIAL_NMAX_CMD_OPEN_MODE);  //Steer + TrqCommand 0 + Set motors into open mode
+  SendCommand(0, 0, HOVER_SERIAL_NMAX_CMD_OPEN_MODE, TBuzzerCmd);  //Steer + TrqCommand 0 + Set motors into open mode
 }
 
 void ReceiveUART() {
@@ -1072,6 +1076,15 @@ void RcRcvCh1TrqMaxCmd() {
   }
 }
 
+void RcRcvCh1BuzzerCmd() {
+  if (RcRcvCh1_qlf == 1) {
+    if (RcRcvCh1_TDuty >= RCRCV_CH1_TD_TRQMAXINC)
+      TBuzzerCmd = RcRcv_SpdCmd / 10;
+    else
+      TBuzzerCmd = 0;
+  }
+}
+
 void RcRcvSpdCmd() {
   if (RcRcvCh5_qlf == 0) {
     RcRcv_SpdCmd = RCRCV_SPDCMD_MIN;
@@ -1355,6 +1368,11 @@ void TorqueControl() {
 
   RcRcvCh1TrqMaxCmd();
 
+  RcRcvCh1BuzzerCmd();
+
+  RcRcvSpdCmd();
+  // Serial.print(",SC:");  Serial.print(RcRcv_SpdCmd);
+
 
   //Check if all QLF ok
   if  (
@@ -1382,9 +1400,6 @@ void TorqueControl() {
     else 
     {
       digitalWrite(ENCSWITCH_PIN, HIGH);  //Turn On Encoders
-
-      RcRcvSpdCmd();
-      // Serial.print(",SC:");  Serial.print(RcRcv_SpdCmd);
 
       RcRcvStrCmd();
       // Serial.print(",StC:");  Serial.print(RcRcv_StrCmd);
@@ -1439,7 +1454,7 @@ void TorqueControl() {
       
       // Send Trq/Speed/Steer-Command only if Fahrfreigabe==1
       if (Fahrfreigabe == 1)
-        SendCommand(RcRcv_StrCmd, TrqCmd, SpdCmd);
+        SendCommand(RcRcv_StrCmd, TrqCmd, SpdCmd, TBuzzerCmd);
       else
         SendCommandSafeState();
     }
