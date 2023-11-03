@@ -36,7 +36,7 @@
 
 //Limit starting torque to avoid harsh motor vibrations
 #define TRQSTART_ENABLED        //limits starting torque command
-#define TRQSTART_TRQ  (450+TRQCMD_BRAKEOFFSET)       //TrqCmd at 0 RPM (Start Torque)
+#define TRQSTART_TRQ  (500+TRQCMD_BRAKEOFFSET)       //TrqCmd at 0 RPM (Start Torque)
 #define TRQSTART_K_RAMP 15      //Slope of TrqRamp over RPM (TrqCmd = TrqStart + speed*K_Ramp/10)
 
 //SpeedLim
