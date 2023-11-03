@@ -870,7 +870,7 @@ void readInputRaw(void) {
         input1[inIdx].raw = commandL.steer;
         input2[inIdx].raw = commandL.speed;
         rtP_Left.n_max = rtP_Right.n_max  = commandL.nmax << 4;
-        beepLong(commandL.FreqBuzzer);
+        beep(commandL.FreqBuzzer);
       #endif
     }
     #endif
@@ -886,7 +886,7 @@ void readInputRaw(void) {
         input1[inIdx].raw = commandR.steer;
         input2[inIdx].raw = commandR.speed;
         rtP_Left.n_max = rtP_Right.n_max  = commandR.nmax << 4;
-        beepLong(commandR.FreqBuzzer);
+        beep(commandR.FreqBuzzer);
       #endif
     }
     #endif
