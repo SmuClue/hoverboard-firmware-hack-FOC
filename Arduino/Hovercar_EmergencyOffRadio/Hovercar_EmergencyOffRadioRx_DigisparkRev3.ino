@@ -1,0 +1,135 @@
+#include <TinyPinChange.h>
+#include <SoftSerial.h>
+
+// ########################## DEFINES ##########################
+#define SERIAL_RX_TX_PIN 0   //TX not needed
+#define START_FRAME 0xAC
+#define SERIAL_TIMEOUT 300      //Timeout for last valid UART Receive in millis
+
+#define LED_PIN 1
+
+#define ENCODER_ONOFF_PIN 3      //Pin switches Encoders on/off via npn transistor
+
+SoftSerial Serial1(SERIAL_RX_TX_PIN,SERIAL_RX_TX_PIN);  //(RX, TX)
+
+uint16_t t = 0;
+uint16_t t10ms = 0;
+
+typedef struct {
+  uint8_t start;
+  uint8_t StEmergencyOff = 0;   // 0 = Encoder Off; 1 = Encoder On
+} SerialFeedback;
+SerialFeedback Feedback; 
+SerialFeedback NewFeedback;
+uint16_t tMillisUART = 0;
+uint8_t UART_qlf = 0;   //0 = unplausible; 1 = plausible; 2 = timeout
+
+uint8_t idx = 0;         // Index for new data pointer
+  uint16_t bufStartFrame;  // Buffer Start Frame
+  byte *p;                 // Pointer declaration for the new received data
+  byte incomingByte;
+  byte incomingBytePrev;
+
+void setup() {    
+  Feedback.StEmergencyOff = 0;            
+  pinMode(ENCODER_ONOFF_PIN, OUTPUT);
+  digitalWrite(ENCODER_ONOFF_PIN,Feedback.StEmergencyOff);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN,Feedback.StEmergencyOff);
+  
+  Serial1.begin(9600);
+  Serial1.rxMode();
+}
+
+void Task1ms(){
+
+}
+
+void ReceiveUART() {
+  // Check for new data availability in the Serial buffer
+  if (Serial1.available()) {
+    incomingByte = Serial1.read();                                       // Read the incoming byte
+    bufStartFrame = ((uint16_t)(incomingByte) << 8) | incomingBytePrev;  // Construct the start frame
+  } else {
+    return;
+  }
+
+  // If DEBUG_RX is defined print all incoming bytes
+  #ifdef DEBUG_RX
+    Serial.print("RX:");
+    Serial.println(incomingByte);
+    //return;
+  #endif
+
+  // Copy received data
+  if (bufStartFrame == START_FRAME) {  // Initialize if new data is detected
+    p = (byte *)&NewFeedback;
+    *p++ = incomingBytePrev;
+    *p++ = incomingByte;
+    idx = 2;
+  } else if (idx >= 2 && idx < sizeof(SerialFeedback)) {  // Save the new received data
+    *p++ = incomingByte;
+    idx++;
+  }
+
+  // Check if we reached the end of the package
+  if (idx == sizeof(SerialFeedback)) {
+    
+    // Check validity of the new data
+    if (NewFeedback.start == START_FRAME) {
+      // Copy the new data
+      memcpy(&Feedback, &NewFeedback, sizeof(SerialFeedback));
+      
+      tMillisUART = (uint16_t)millis();
+      UART_qlf = 1;
+
+    } else {
+      tMillisUART = (uint16_t)millis();
+      UART_qlf = 0;
+    }
+    idx = 0;  // Reset the index (it prevents to enter in this if condition in the next cycle)
+  }
+
+  // Update previous states
+  incomingBytePrev = incomingByte;
+}
+
+void ReceiveUARTPlaus() {
+  if (((uint16_t)millis() - tMillisUART) > SERIAL_TIMEOUT)  //Trigger Timeout
+  {
+    tMillisUART = (uint16_t)millis() - SERIAL_TIMEOUT - 1;  //pull tMillisUART behind actual millis to avoid overflow/runover-effects
+
+    UART_qlf = 2;
+
+    //Set UART Feedback to 0
+    Feedback.StEmergencyOff = 0;
+  }
+  else if (UART_qlf == 0) //invalid CRC
+  {
+    //Set UART Feedback to 0
+    Feedback.StEmergencyOff = 0;
+  }
+}
+
+void Task10ms(){
+  ReceiveUART();
+  ReceiveUARTPlaus();
+
+  digitalWrite(ENCODER_ONOFF_PIN,Feedback.StEmergencyOff);
+  digitalWrite(LED_PIN,Feedback.StEmergencyOff);
+}
+
+
+void loop() {
+  if ((uint16_t)millis() != t)  //1 ms task
+  {
+    t = (uint16_t)millis();
+    Task1ms();
+  }
+  else if ((t - t10ms) >= 10)  //10 ms task
+  {
+    t10ms = t;
+    Task10ms();
+  }
+    
+}
