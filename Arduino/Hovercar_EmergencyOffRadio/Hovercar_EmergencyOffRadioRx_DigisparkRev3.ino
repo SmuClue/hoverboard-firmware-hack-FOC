@@ -49,32 +49,23 @@ void ReceiveUART() {
   // Check for new data availability in the Serial buffer
   if (Serial1.available()) {
     incomingByte = Serial1.read();                                       // Read the incoming byte
-    bufStartFrame = ((uint16_t)(incomingByte) << 8) | incomingBytePrev;  // Construct the start frame
+    bufStartFrame = incomingByte;  // Construct the start frame
   } else {
     return;
   }
 
-  // If DEBUG_RX is defined print all incoming bytes
-  #ifdef DEBUG_RX
-    Serial.print("RX:");
-    Serial.println(incomingByte);
-    //return;
-  #endif
-
   // Copy received data
   if (bufStartFrame == START_FRAME) {  // Initialize if new data is detected
     p = (byte *)&NewFeedback;
-    *p++ = incomingBytePrev;
     *p++ = incomingByte;
-    idx = 2;
-  } else if (idx >= 2 && idx < sizeof(SerialFeedback)) {  // Save the new received data
+    idx = 1;
+  } else if (idx >= 1 && idx < sizeof(SerialFeedback)) {  // Save the new received data
     *p++ = incomingByte;
     idx++;
   }
 
   // Check if we reached the end of the package
   if (idx == sizeof(SerialFeedback)) {
-    
     // Check validity of the new data
     if (NewFeedback.start == START_FRAME) {
       // Copy the new data
@@ -89,7 +80,6 @@ void ReceiveUART() {
     }
     idx = 0;  // Reset the index (it prevents to enter in this if condition in the next cycle)
   }
-
   // Update previous states
   incomingBytePrev = incomingByte;
 }
@@ -112,7 +102,6 @@ void ReceiveUARTPlaus() {
 }
 
 void Task10ms(){
-  ReceiveUART();
   ReceiveUARTPlaus();
 
   digitalWrite(ENCODER_ONOFF_PIN,Feedback.StEmergencyOff);
@@ -121,6 +110,7 @@ void Task10ms(){
 
 
 void loop() {
+  ReceiveUART();
   if ((uint16_t)millis() != t)  //1 ms task
   {
     t = (uint16_t)millis();

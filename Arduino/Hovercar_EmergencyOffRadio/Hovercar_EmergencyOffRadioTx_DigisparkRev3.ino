@@ -14,6 +14,7 @@ SoftSerial Serial1(SERIAL_RX_TX_PIN,SERIAL_RX_TX_PIN);  //(RX, TX)
 
 uint16_t t = 0;
 uint16_t t100ms = 0;
+uint16_t t1000ms = 0;
 uint8_t CntButton = 0; //Counting
 uint8_t StEmergencyOff = 0;   // 0 = Encoder Off; 1 = Encoder On
 uint8_t StEmergencyOffSwitched = 0;
@@ -69,6 +70,11 @@ void loop() {
     t100ms = t;
     Task100ms();
   }
-  
+  else if ((t - t1000ms) >= 1000)  
+  {
+    t1000ms = t;
+    StEmergencyOff = !StEmergencyOff;       //Test-Case Toggle every Second
+    digitalWrite(LED_PIN, StEmergencyOff);  //Test-Case Toggle every Second
+  }
   
 }
