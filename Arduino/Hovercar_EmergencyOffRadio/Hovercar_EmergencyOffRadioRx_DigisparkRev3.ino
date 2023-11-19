@@ -8,7 +8,7 @@
 
 #define LED_PIN 1
 
-#define ENCODER_ONOFF_PIN 3      //Pin switches Encoders on/off via npn transistor
+#define ENCSWITCH_PIN 2      //Pin switches Encoders on/off via npn transistor
 
 SoftSerial Serial1(SERIAL_RX_TX_PIN,SERIAL_RX_TX_PIN);  //(RX, TX)
 
@@ -32,8 +32,8 @@ uint8_t idx = 0;         // Index for new data pointer
 
 void setup() {    
   Feedback.StEmergencyOff = 0;            
-  pinMode(ENCODER_ONOFF_PIN, OUTPUT);
-  digitalWrite(ENCODER_ONOFF_PIN,Feedback.StEmergencyOff);
+  pinMode(ENCSWITCH_PIN, OUTPUT);
+  digitalWrite(ENCSWITCH_PIN,Feedback.StEmergencyOff);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN,Feedback.StEmergencyOff);
   
@@ -104,7 +104,7 @@ void ReceiveUARTPlaus() {
 void Task10ms(){
   ReceiveUARTPlaus();
 
-  digitalWrite(ENCODER_ONOFF_PIN,Feedback.StEmergencyOff);
+  digitalWrite(ENCSWITCH_PIN,Feedback.StEmergencyOff);
   digitalWrite(LED_PIN,Feedback.StEmergencyOff);
 }
 

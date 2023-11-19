@@ -8,6 +8,7 @@
 #define LED_PIN 1
 
 #define BUTTON_PIN 3    //Button press connects pin to gnd
+#define BUTTON_GND_PIN 4    //Button GND
 #define BUTTON_DEBOUNCE_CNT 50    //debounce in ms
 
 SoftSerial Serial1(SERIAL_RX_TX_PIN,SERIAL_RX_TX_PIN);  //(RX, TX)
@@ -27,6 +28,9 @@ SerialCommand Command;
 
 void setup() {                
   pinMode(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(BUTTON_GND_PIN, OUTPUT);
+  digitalWrite(BUTTON_GND_PIN,LOW);
+
   pinMode(LED_PIN, OUTPUT);
   
   Serial1.begin(9600);
@@ -73,8 +77,8 @@ void loop() {
   else if ((t - t1000ms) >= 1000)  
   {
     t1000ms = t;
-    StEmergencyOff = !StEmergencyOff;       //Test-Case Toggle every Second
-    digitalWrite(LED_PIN, StEmergencyOff);  //Test-Case Toggle every Second
+    // StEmergencyOff = !StEmergencyOff;       //Test-Case Toggle every Second
+    // digitalWrite(LED_PIN, StEmergencyOff);  //Test-Case Toggle every Second
   }
   
 }
