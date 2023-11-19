@@ -144,6 +144,7 @@
 #define RCRCV_CH5_TD_GRD_DIAG  1000      //Max Gradient Duty-Time in micros plausible
 #define RCRCV_SPDCMD_MIN    50       //Command @ RCRCV_CH5_TD_MIN
 #define RCRCV_SPDCMD_MAX    800    //Command @ RCRCV_CH5_TD_MAX
+#define SPDCMD_SAFE         300     //NMax-Command @SafeState -> Not 0 because NMax-Controller is very aggressive and defined brake torque shall be commanded via TrqCmd
 
 // #define DEBUG_RX                        // [-] Debug received data. Prints all bytes to serial (comment-out to disable)
 // #define DEBUG_TX
@@ -478,7 +479,7 @@ void SendCommand(int16_t SteerCommand, int16_t TrqCommand, int16_t nmaxCommand) 
 }
 
 void SendCommandSafeState(){
-  SendCommand(0, 0, HOVER_SERIAL_NMAX_CMD_OPEN_MODE);  //Steer + TrqCommand 0 + Set motors into open mode
+  SendCommand(0, 0, SPDCMD_SAFE);  //Steer + TrqCommand 0 + Set NMax-Control to defined value (not 0)
 }
 
 void ReceiveUART() {
@@ -1374,7 +1375,7 @@ void TorqueControl() {
     if (RcRcv_EmergOff == 1)
     {
       Fahrfreigabe = 0;
-      SendCommandSafeState();
+      SendCommand(0, 0, HOVER_SERIAL_NMAX_CMD_OPEN_MODE);  //Steer + TrqCommand 0 + Set motors into open mode
       if (RcRcv_EmergOffCnt > RCRCV_EMERGOFFCNT_RELAIS)
         digitalWrite(ENCSWITCH_PIN, LOW);  //Turn Off Encoders
     }
