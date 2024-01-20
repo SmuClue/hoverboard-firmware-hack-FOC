@@ -939,7 +939,7 @@ void AcclrtReadPlaus() {
     }
     
   }
-  else if ((acclrt_adc < ACCLRT_ADC_MIN) && (acclrt_adc_old < ACCLRT_ADC_MIN))  //Re-Enable Plausi-Status only when acclrt not betätigt for 2 cycles
+  else if ((acclrt_adc < ACCLRT_ADC_MIN) && (acclrt_adc_old < ACCLRT_ADC_MIN))  //Re-Enable Plausi-Status only when acclrt not pressed for 2 cycles
   {
     acclrt_qlf = 1;
     acclrt_errCnt = 0;
@@ -1364,7 +1364,7 @@ void TorqueControl() {
       && (RcRcvCh3_qlf == 1) 
       && (RcRcvCh4_qlf == 1) 
       && (RcRcvCh5_qlf == 1) 
-      && (acclrt_qlf == 1)
+      //&& (acclrt_qlf == 1)  //-> acclrt_TrqCmd is set to ACCLRT_TRQCMD_MIN when qlf is not okay inside AcclrtTrqCmd(). Qlf only goes to "ok" when acclrt is not pressed. RC-Control-Mode shall still be available at Acclrt failure.
       )
   {
     RcRcvEmergOff();
