@@ -36,7 +36,7 @@
 
 //Limit starting torque to avoid harsh motor vibrations
 #define TRQSTART_ENABLED        //limits starting torque command
-#define TRQSTART_TRQ  (500+TRQCMD_BRAKEOFFSET)       //TrqCmd at 0 RPM (Start Torque)
+#define TRQSTART_TRQ  (600+TRQCMD_BRAKEOFFSET)       //TrqCmd at 0 RPM (Start Torque)
 #define TRQSTART_K_RAMP 15      //Slope of TrqRamp over RPM (TrqCmd = TrqStart + speed*K_Ramp/10)
 
 //SpeedLim
@@ -70,6 +70,14 @@
 
 //EncoderSwitch PINS
 #define ENCSWITCH_PIN 21           //Digital out controlling Transistor switching Encoder (Hoverboard Motorencoder) GND off/open
+
+//Reverse Mode
+#define REVERSEBUTTON_GND_PIN 23
+#define REVERSEBUTTON_SIGNAL_PIN 19
+#define REVERSEBUTTON_LED_PIN 22
+#define REVERSEBUTTON_DEBOUNCE_CYCLES 7
+#define REVERSE_TRQCMD_THRS 150   //|TrqCmd| needs to be < this value to switch Reverse Mode
+#define REVERSE_SPD_THRS 50   //|SpeedAvg| needs to be < this value to switch Reverse Mode
 
 //CH2 RC Throttle (RcRcv_TrqCmd)
 #define RCRCV_CH2_TD_MIN  1000           //Min Duty-Time in micros 
@@ -166,6 +174,11 @@ uint8_t CntBTOnOff = 0;
 
 uint8_t StTrqMaxCmdSet = 0;
 uint8_t CntTrqMaxCmd = 0;
+
+//Reverse Mode
+uint8_t StReverseMode = 0;
+int8_t NumCyclesReverseButtonPushed = 0;
+uint8_t StReverseButtonDebounced = 0;
 
 uint16_t acclrt_adc_raw[4] = {0,0,0,0};
 uint16_t acclrt_adc = 0;     //filtered ADC-Value
@@ -400,6 +413,11 @@ void setup() {
   digitalWrite(ACCLRT_SUPPLY_PIN, HIGH);  //5V-Supply
   pinMode(ACCLRT_GND_PIN, OUTPUT);
   digitalWrite(ACCLRT_GND_PIN, LOW);  //GND-Supply
+
+  //PINS ReverseMode-Button
+  pinMode(REVERSEBUTTON_SIGNAL_PIN,INPUT_PULLUP);
+  pinMode(REVERSEBUTTON_GND_PIN, OUTPUT);
+  digitalWrite(REVERSEBUTTON_GND_PIN, LOW);  //GND
 
   //PINS RCRCV
   //CH2
@@ -908,6 +926,22 @@ void RcRcvCh3ReadPlaus() {
   }
 }
 
+void ReverseButtonReadPlaus (){
+  uint8_t StReverseButton = digitalRead(REVERSEBUTTON_SIGNAL_PIN);
+
+  if (StReverseButton)  // Pull-Up -> not pushed
+    NumCyclesReverseButtonPushed = NumCyclesReverseButtonPushed - 3;
+  else
+    NumCyclesReverseButtonPushed = NumCyclesReverseButtonPushed + 1;
+
+  NumCyclesReverseButtonPushed = min((int8_t)(REVERSEBUTTON_DEBOUNCE_CYCLES + 3) , max((int8_t)0 , NumCyclesReverseButtonPushed));  //Limit NumCyclesReverseButtonPushed to [0; REVERSEBUTTON_DEBOUNCE_CYCLES+3]
+
+  if (NumCyclesReverseButtonPushed >= REVERSEBUTTON_DEBOUNCE_CYCLES)
+    StReverseButtonDebounced = 1;
+  else 
+    StReverseButtonDebounced = 0;  
+}
+
 void AcclrtReadPlaus() {
   acclrt_adc_old = acclrt_adc;
   for (uint8_t i = 0; i<3; i++)
@@ -1356,6 +1390,10 @@ void TorqueControl() {
 
   RcRcvCh1TrqMaxCmd();
 
+  ReverseButtonReadPlaus ();
+  // Serial.print("StReverse:");  Serial.println(StReverseButtonDebounced);
+  // Serial.print("NReverse:");  Serial.println(NumCyclesReverseButtonPushed);
+
 
   //Check if all QLF ok
   if  (
@@ -1407,6 +1445,14 @@ void TorqueControl() {
         TrqCmd = acclrt_TrqCmd;
       else if (RcRcv_CtrlMod == RCRCV_CTRLMOD_RCLIM)
         TrqCmd = min(acclrt_TrqCmd, RcRcv_TrqCmd);
+
+      //Switch Reverse Mode on/off when TrqCmd and Speed below threshold
+      if ((abs(TrqCmd) < REVERSE_TRQCMD_THRS) && (abs(speedAvg_meas) < REVERSE_SPD_THRS))
+        StReverseMode = StReverseButtonDebounced;
+
+      //TrqCmd according to Reverse-Mode
+      if ((StReverseMode == 1) && ((RcRcv_CtrlMod == RCRCV_CTRLMOD_ACCLRT) || (RcRcv_CtrlMod == RCRCV_CTRLMOD_RCLIM)))
+        TrqCmd = -TrqCmd;        
 
       // Serial.print(",TC:");  Serial.println(TrqCmd);
       
