@@ -74,7 +74,7 @@
 //Reverse Mode
 #define REVERSEBUTTON_GND_PIN 23
 #define REVERSEBUTTON_SIGNAL_PIN 19
-#define REVERSEBUTTON_LED_PIN 22
+//#define REVERSEBUTTON_LED_PIN 22
 #define REVERSEBUTTON_DEBOUNCE_CYCLES 7
 #define REVERSE_TRQCMD_THRS 150   //|TrqCmd| needs to be < this value to switch Reverse Mode
 #define REVERSE_SPD_THRS 50   //|SpeedAvg| needs to be < this value to switch Reverse Mode
@@ -1460,7 +1460,7 @@ void TorqueControl() {
       SpdCmd = 0;
       int16_t SpdCmdReverse = min((int16_t)SPDCMD_REVERSE,RcRcv_SpdCmd);
       // reverse speedlim
-      if (speedAvg_meas < -(SpdCmdReverse - 20))
+      if ((speedAvg_meas < -(SpdCmdReverse - 20)) || (StReverseMode == 1))
         SpdCmd = SpdCmdReverse;
       else
         SpdCmd = RcRcv_SpdCmd;
@@ -1473,7 +1473,11 @@ void TorqueControl() {
 
       //TrqRequest with SpeedLimitation
       #if defined(SPDLIM_ENABLED)
-        TrqCmd = min(TrqCmd,SpeedLimPos(RcRcv_SpdCmd, speedAvg_meas, (uint8_t)SPDLIM_K_CTRL));
+        if (StReverseMode == 1)
+          TrqCmd = min(TrqCmd,SpeedLimPos(SpdCmdReverse, speedAvg_meas, (uint8_t)SPDLIM_K_CTRL));
+        else
+          TrqCmd = min(TrqCmd,SpeedLimPos(RcRcv_SpdCmd, speedAvg_meas, (uint8_t)SPDLIM_K_CTRL));
+        
         TrqCmd = max(TrqCmd,SpeedLimNeg(-SpdCmdReverse, speedAvg_meas, (uint8_t)SPDLIM_K_CTRL));
       #endif
       
