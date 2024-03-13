@@ -76,7 +76,7 @@
 #define REVERSEBUTTON_SIGNAL_PIN 19
 //#define REVERSEBUTTON_LED_PIN 22
 #define REVERSEBUTTON_DEBOUNCE_CYCLES 7
-#define REVERSE_TRQCMD_THRS 150   //|TrqCmd| needs to be < this value to switch Reverse Mode
+#define REVERSE_TRQCMD_THRS (TRQCMD_BRAKEOFFSET+200)   //|TrqCmd| needs to be < this value to switch Reverse Mode
 #define REVERSE_SPD_THRS 50   //|SpeedAvg| needs to be < this value to switch Reverse Mode
 
 //CH2 RC Throttle (RcRcv_TrqCmd)
@@ -1449,6 +1449,8 @@ void TorqueControl() {
       //Switch Reverse Mode on/off when TrqCmd and Speed below threshold
       if ((abs(TrqCmd) < REVERSE_TRQCMD_THRS) && (abs(speedAvg_meas) < REVERSE_SPD_THRS))
         StReverseMode = StReverseButtonDebounced;
+      else if (StReverseMode != StReverseButtonDebounced)    //Driver wants to change ReverseMode but condition is not yet correct -> no more torqe request as it would go in the opposite direction as driver would expect
+        TrqCmd = 0;
 
       //TrqCmd according to Reverse-Mode
       if ((StReverseMode == 1) && ((RcRcv_CtrlMod == RCRCV_CTRLMOD_ACCLRT) || (RcRcv_CtrlMod == RCRCV_CTRLMOD_RCLIM)))
