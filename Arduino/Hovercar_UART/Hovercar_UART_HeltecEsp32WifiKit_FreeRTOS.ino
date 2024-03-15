@@ -49,9 +49,9 @@
 #define ACCLRT_SUPPLY_PIN 13     //3.3V Supply for Accelerator
 #define ACCLRT_SENS_PIN 12       //Sensor ADC for Accelerator
 #define ACCLRT_GND_PIN 14        //GND Supply for Accelerator
-#define ACCLRT_ADC_MIN 1000       //MIN-Value of ADC over wich TrqRequest starts
+#define ACCLRT_ADC_MIN 1050       //MIN-Value of ADC over wich TrqRequest starts
 #define ACCLRT_ADC_MIN_DIAG 800  //MIN-Threshold of ADC for Diagnosis
-#define ACCLRT_ADC_MAX 2300       //MIN-Value of ADC over wich TrqRequest starts 2800 without spacer, 2300 with 4mm spacer
+#define ACCLRT_ADC_MAX 2200       //MIN-Value of ADC over wich TrqRequest starts 2800 without spacer, 2300 with 4mm spacer
 #define ACCLRT_ADC_MAX_DIAG 3000  //MIN-Threshold of ADC for Diagnosis
 #define ACCLRT_ADC_GRD_DIAG 800   //MAX-Absolute change of ADC over 1 Cycle for Diagnosis
 #define ACCLRT_ERRCNTMAX   10          //max number of Error-Counter bevore Qlf is set to invalid
