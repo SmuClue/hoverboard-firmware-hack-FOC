@@ -76,7 +76,7 @@
 #define REVERSEBUTTON_SIGNAL_PIN 19
 //#define REVERSEBUTTON_LED_PIN 22
 #define REVERSEBUTTON_DEBOUNCE_CYCLES 7
-#define REVERSE_TRQCMD_THRS (TRQCMD_BRAKEOFFSET+200)   //|TrqCmd| needs to be < this value to switch Reverse Mode
+#define REVERSE_TRQCMD_THRS (TRQCMD_BRAKEOFFSET+300)   //|TrqCmd| needs to be < this value to switch Reverse Mode
 #define REVERSE_SPD_THRS 50   //|SpeedAvg| needs to be < this value to switch Reverse Mode
 
 //CH2 RC Throttle (RcRcv_TrqCmd)
