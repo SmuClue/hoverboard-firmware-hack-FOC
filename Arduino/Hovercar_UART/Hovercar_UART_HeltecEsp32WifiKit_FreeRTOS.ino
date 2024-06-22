@@ -76,8 +76,8 @@
 #define REVERSEBUTTON_SIGNAL_PIN 19
 //#define REVERSEBUTTON_LED_PIN 22
 #define REVERSEBUTTON_DEBOUNCE_CYCLES 7
-#define REVERSE_TRQCMD_THRS (TRQCMD_BRAKEOFFSET+300)   //|TrqCmd| needs to be < this value to switch Reverse Mode
-#define REVERSE_SPD_THRS 50   //|SpeedAvg| needs to be < this value to switch Reverse Mode
+#define REVERSE_TRQCMD_THRS (TRQCMD_BRAKEOFFSET+500)   //|TrqCmd| needs to be < this value to switch Reverse Mode
+#define REVERSE_SPD_THRS 100   //|SpeedAvg| needs to be < this value to switch Reverse Mode
 
 //CH2 RC Throttle (RcRcv_TrqCmd)
 #define RCRCV_CH2_TD_MIN  1000           //Min Duty-Time in micros 
