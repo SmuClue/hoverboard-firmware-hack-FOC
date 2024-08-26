@@ -5,6 +5,7 @@
 #define SERIAL_RX_TX_PIN 0   //TX not needed
 #define START_FRAME 0xAC
 #define SERIAL_TIMEOUT 300      //Timeout for last valid UART Receive in millis
+#define SERIAL_BAUD 2400
 
 #define LED_PIN 1
 
@@ -37,7 +38,7 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN,Feedback.StEmergencyOff);
   
-  Serial1.begin(9600);
+  Serial1.begin(SERIAL_BAUD);
   Serial1.rxMode();
 }
 

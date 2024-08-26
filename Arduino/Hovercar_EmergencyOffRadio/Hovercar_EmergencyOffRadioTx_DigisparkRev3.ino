@@ -4,6 +4,7 @@
 // ########################## DEFINES ##########################
 #define SERIAL_RX_TX_PIN 0   //RX not needed
 #define START_FRAME 0xAC
+#define SERIAL_BAUD 2400
 
 #define LED_PIN 1
 
@@ -33,7 +34,7 @@ void setup() {
 
   pinMode(LED_PIN, OUTPUT);
   
-  Serial1.begin(9600);
+  Serial1.begin(SERIAL_BAUD);
   Serial1.txMode();
 }
 
