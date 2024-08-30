@@ -5,6 +5,7 @@
 #define SERIAL_RX_TX_PIN 0   //TX not needed
 #define START_FRAME 0xAC
 #define SERIAL_TIMEOUT 300      //Timeout for last valid UART Receive in millis
+#define SERIAL_NUM_UNPLAUSIBLE 2  //Number of unplausible messages in a row tolerated
 #define SERIAL_BAUD 2400
 
 #define LED_PIN 1
@@ -24,6 +25,7 @@ SerialFeedback Feedback;
 SerialFeedback NewFeedback;
 uint16_t tMillisUART = 0;
 uint8_t UART_qlf = 0;   //0 = unplausible; 1 = plausible; 2 = timeout
+uint8_t NumUartQlfUnplaus = 0;    //number of unplausible messages received in a row
 
 uint8_t idx = 0;         // Index for new data pointer
   uint16_t bufStartFrame;  // Buffer Start Frame
@@ -74,10 +76,14 @@ void ReceiveUART() {
       
       tMillisUART = (uint16_t)millis();
       UART_qlf = 1;
+      NumUartQlfUnplaus = 0;
 
     } else {
       tMillisUART = (uint16_t)millis();
       UART_qlf = 0;
+      NumUartQlfUnplaus++;
+      if (NumUartQlfUnplaus > 254)
+        NumUartQlfUnplaus = 254;
     }
     idx = 0;  // Reset the index (it prevents to enter in this if condition in the next cycle)
   }
@@ -95,7 +101,7 @@ void ReceiveUARTPlaus() {
     //Set UART Feedback to 0
     Feedback.StEmergencyOff = 0;
   }
-  else if (UART_qlf == 0) //invalid CRC
+  else if ((UART_qlf == 0) && (NumUartQlfUnplaus > SERIAL_NUM_UNPLAUSIBLE)) //unplausible message
   {
     //Set UART Feedback to 0
     Feedback.StEmergencyOff = 0;
