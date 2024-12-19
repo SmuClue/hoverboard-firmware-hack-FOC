@@ -1388,8 +1388,6 @@ void TorqueControl() {
   // Serial.print("StatusBtOn:");  Serial.println(StatusBtOn);
   // Serial.print("BtCnt:");  Serial.println(CntBTOnOff);
 
-  RcRcvCh1TrqMaxCmd();
-
   ReverseButtonReadPlaus ();
   // Serial.print("StReverse:");  Serial.println(StReverseButtonDebounced);
   // Serial.print("NReverse:");  Serial.println(NumCyclesReverseButtonPushed);
@@ -1430,6 +1428,9 @@ void TorqueControl() {
 
       RcRcvCtrlMod();
       // Serial.print(",CM:");  Serial.print(RcRcv_CtrlMod);
+
+      if (RcRcv_CtrlMod != RCRCV_CTRLMOD_ACCLRT)
+        RcRcvCh1TrqMaxCmd();
 
       AcclrtTrqCmd();
       //Serial.print(",TA:");  Serial.print(acclrt_TrqCmd);
