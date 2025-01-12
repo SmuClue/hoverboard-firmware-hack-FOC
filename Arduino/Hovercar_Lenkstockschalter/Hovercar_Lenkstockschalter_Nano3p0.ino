@@ -3,14 +3,14 @@
 #define PIN_GND 3       //D3 = GND for lenkstockschalter
 #define PIN_BLINK_LEFT_LENKSTOCK 4 //D4 = Eingang Blinker links Lenkstock
 #define PIN_BLINK_RIGHT_LENKSTOCK 5 //D5 = Eingang Blinker rechts Lenkstock
-#define PIN_BLINK_LEFT_REAR_OUT 10 //D10 = Ausgang Blinker links
+#define PIN_BLINK_LEFT_REAR_OUT 12 //D12 = Ausgang Blinker links
 #define PIN_BLINK_RIGHT_REAR_OUT 11 //D11 = Ausgang Blinker rechts
 
 #define COUNTER_LENKSTOCK_DEBOUNCE_ON 8
 #define COUNTER_LENKSTOCK_DEBOUNCE_OFF 1
 
-#define COUNTER_BLINKER_ON 100
-#define COUNTER_BLINKER_OFF 100
+#define COUNTER_BLINKER_ON 10
+#define COUNTER_BLINKER_OFF 10
 
 uint16_t t = 0;
 uint16_t t10ms = 0;
@@ -38,6 +38,9 @@ void setup() {
     digitalWrite(PIN_BLINK_LEFT_REAR_OUT,LOW);
     pinMode(PIN_BLINK_RIGHT_REAR_OUT, OUTPUT);
     digitalWrite(PIN_BLINK_RIGHT_REAR_OUT,LOW);
+
+    Serial.begin(115200);
+    Serial.println("Hovercar_Lenkstockschalter");
 }
 
 void ReadInputs(){
@@ -93,7 +96,8 @@ void ControlBlinker(){
         StBlinker = 0;
         CounterBlink = 0;
     }
-
+    //Serial.print("StBlinker: ");Serial.println(StBlinker);
+    //Serial.print("DigWrite: ");Serial.println((StBlinkerLeftIn && StBlinker));
     digitalWrite(PIN_BLINK_LEFT_REAR_OUT,(StBlinkerLeftIn && StBlinker));
     digitalWrite(PIN_BLINK_RIGHT_REAR_OUT,(StBlinkerRightIn && StBlinker));
 }
@@ -107,6 +111,8 @@ void Task10ms(){
 }
 
 void Task100ms(){
+    StBlinkerLeftIn = 1;
+    StBlinkerRightIn = 1;
     ControlBlinker();
 }
 
