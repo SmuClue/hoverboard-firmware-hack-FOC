@@ -1,16 +1,18 @@
 
 // ########################## DEFINES ##########################
 #define PIN_GND 3       //D3 = GND for lenkstockschalter
-#define PIN_BLINK_LEFT_LENKSTOCK 4 //D4 = Eingang Blinker links Lenkstock
-#define PIN_BLINK_RIGHT_LENKSTOCK 5 //D5 = Eingang Blinker rechts Lenkstock
-#define PIN_BLINK_LEFT_REAR_OUT 12 //D12 = Ausgang Blinker links
-#define PIN_BLINK_RIGHT_REAR_OUT 11 //D11 = Ausgang Blinker rechts
+#define PIN_BLINK_RIGHT_LENKSTOCK 4 //D4 = Eingang Blinker links Lenkstock
+#define PIN_BLINK_LEFT_LENKSTOCK 5 //D5 = Eingang Blinker rechts Lenkstock
+#define PIN_BLINK_RIGHT_REAR_OUT 12 //D12 = Ausgang Blinker hinten links
+#define PIN_BLINK_LEFT_REAR_OUT 11 //D11 = Ausgang Blinker hinten rechts
+#define PIN_BLINK_LEFT_FRONT_OUT 14 //A0 = Ausgang Blinker vorne links
+#define PIN_BLINK_RIGHT_FRONT_OUT 15 //A1 = Ausgang Blinker vorne rechts
 
 #define COUNTER_LENKSTOCK_DEBOUNCE_ON 8
 #define COUNTER_LENKSTOCK_DEBOUNCE_OFF 1
 
-#define COUNTER_BLINKER_ON 10
-#define COUNTER_BLINKER_OFF 10
+#define COUNTER_BLINKER_ON 8
+#define COUNTER_BLINKER_OFF 5
 
 uint16_t t = 0;
 uint16_t t10ms = 0;
@@ -45,7 +47,7 @@ void setup() {
 
 void ReadInputs(){
     //Blinker Left
-    if (digitalRead(PIN_BLINK_LEFT_LENKSTOCK))
+    if (digitalRead(PIN_BLINK_LEFT_LENKSTOCK) == 0)
     {
         CounterBlinkLeftIn++;
         if (CounterBlinkLeftIn > COUNTER_LENKSTOCK_DEBOUNCE_ON)
@@ -63,7 +65,7 @@ void ReadInputs(){
     }
 
     //Blinker Right
-    if (digitalRead(PIN_BLINK_RIGHT_LENKSTOCK))
+    if (digitalRead(PIN_BLINK_RIGHT_LENKSTOCK) == 0)
     {
         CounterBlinkRightIn++;
         if (CounterBlinkRightIn > COUNTER_LENKSTOCK_DEBOUNCE_ON)
@@ -107,12 +109,12 @@ void Task1ms(){
 
 void Task10ms(){
     ReadInputs();
-    
+    //Serial.print("StBlinkerLeftIn: ");Serial.println(StBlinkerLeftIn);
+    //Serial.print("StBlinkerRightIn: ");Serial.println(StBlinkerRightIn);
 }
 
 void Task100ms(){
-    StBlinkerLeftIn = 1;
-    StBlinkerRightIn = 1;
+    //evtl. eine zentrale funktion, die zyklisch ausgänge ansteuert und von steuerfunktion nur die Zeiten (on/off bzw. reihenfolge [T_on;T_off;T_on;T_off;T_on;T_off] pro kanal bekommt)
     ControlBlinker();
 }
 
